@@ -2,7 +2,7 @@
 
 namespace StudentGroup.DTOs.OrganizerDtos
 {
-    public class OrganizerGetDto:AbstractValidator<OrganizerGetDto>
+    public class OrganizerGetDto
     {
         public int Id { get; set; }
         public string Name { get; set; } = null!;

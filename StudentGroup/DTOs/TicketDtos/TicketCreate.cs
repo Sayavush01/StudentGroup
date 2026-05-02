@@ -1,13 +1,11 @@
-﻿namespace StudentGroup.Models
+﻿namespace StudentGroup.DTOs.TicketDtos
 {
-    public class Ticket
+    public class TicketCreate
     {
         public int Id { get; set; }
-        public Event Event { get; set; }= null!;
         public int EventId { get; set; }
         public string Type { get; set; } = null!;
         public decimal Price { get; set; }
         public int QuantityAvailable { get; set; }
-
     }
 }

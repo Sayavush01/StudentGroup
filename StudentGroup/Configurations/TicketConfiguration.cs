@@ -1,6 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
-using StudentGroup.Models;
+using StudentGroup.Entities;
+
 
 namespace EventManagementApi.Configurations;
 

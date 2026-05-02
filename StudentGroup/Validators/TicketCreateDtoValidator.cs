@@ -3,7 +3,7 @@ using StudentGroup.DTOs.TicketDtos;
 
 namespace StudentGroup.Validators
 {
-    public class TicketCreateDtoValidator:AbstractValidator<Ticket>
+    public class TicketCreateDtoValidator:AbstractValidator<TicketCreate>
     {
         public TicketCreateDtoValidator()
         {

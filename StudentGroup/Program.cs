@@ -1,7 +1,6 @@
 
 using AutoMapper;
 using FluentValidation;
-using FluentValidation.AspNetCore;
 using Microsoft.EntityFrameworkCore;
 using StudentGroup.Data;
 using System;

@@ -3,7 +3,7 @@
     using FluentValidation;
     using StudentGroup.DTOs.EventDtos;
 
-    public class EventCreateDtoValidator 
+    public class OrganizerCreate
     {
         public string Name { get; set; } = null!;
         public string Email { get; set; } = null!;
