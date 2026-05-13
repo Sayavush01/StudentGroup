@@ -27,6 +27,7 @@ namespace StudentGroup.Controllers
             var eventDtos = _mapper.Map<List<DTOs.EventDtos.EventGetdto>>(events);
             return Ok(eventDtos);
         }
+        [HttpGet("{id}")]
         public async Task<IActionResult> GetById(int id)
         {
             var eventEntity = await _context.Events.FindAsync(id);
@@ -38,6 +39,8 @@ namespace StudentGroup.Controllers
             var eventDto = _mapper.Map<DTOs.EventDtos.EventGetdto>(eventEntity);
             return Ok(eventDto);
         }
+
+        [HttpPost]
         public async Task<IActionResult> CreateEvent(EventCreateDto eventCreateDto)
         {
             var eventEntity = _mapper.Map<Event>(eventCreateDto);
@@ -47,6 +50,8 @@ namespace StudentGroup.Controllers
 
             return CreatedAtAction(nameof(GetById), new { id = eventEntity.Id }, result);
         }
+
+        [HttpPut("{id}")]
         public async Task<IActionResult> UpdateEvent(int id, EventUpdatedto eventUpdateDto)
         {
             var eventEntity = await _context.Events.FindAsync(id);
@@ -58,6 +63,8 @@ namespace StudentGroup.Controllers
             await _context.SaveChangesAsync();
             return NoContent();
         }
+
+        [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteEvent(int id)
         {
             var eventEntity = await _context.Events.FindAsync(id);
