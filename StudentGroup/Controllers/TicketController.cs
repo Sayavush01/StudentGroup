@@ -1,15 +1,13 @@
 using AutoMapper;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using StudentGroup.Data;
 using StudentGroup.DTOs.TicketDtos;
 using StudentGroup.Entities;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 
 namespace StudentGroup.Controllers
 {
-    [Route("api/[controller]")]
+    [Route("api/tickets")]
     [ApiController]
     public class TicketController : ControllerBase
     {
@@ -23,10 +21,11 @@ namespace StudentGroup.Controllers
         }
 
         [HttpGet]
-        public IActionResult GetAllTickets()
+        public async Task<IActionResult> GetAllTickets()
         {
-            var tickets = _context.Tickets.ToList();
+            var tickets = await _context.Tickets.ToListAsync();
             var ticketDtos = _mapper.Map<List<TicketGetDto>>(tickets);
+
             return Ok(ticketDtos);
         }
 
@@ -34,21 +33,28 @@ namespace StudentGroup.Controllers
         public async Task<IActionResult> GetById(int id)
         {
             var ticketEntity = await _context.Tickets.FindAsync(id);
+
             if (ticketEntity == null)
-            {
                 return NotFound();
-            }
 
             var ticketDto = _mapper.Map<TicketGetDto>(ticketEntity);
+
             return Ok(ticketDto);
         }
 
         [HttpPost]
-        public async Task<IActionResult> CreateTicket(TicketCreate ticketCreate)
+        public async Task<IActionResult> CreateTicket(TicketCreate ticketCreateDto)
         {
-            var ticketEntity = _mapper.Map<Ticket>(ticketCreate);
+            var eventExists = await _context.Events.AnyAsync(e => e.Id == ticketCreateDto.EventId);
+
+            if (!eventExists)
+                return BadRequest("Event does not exist.");
+
+            var ticketEntity = _mapper.Map<Ticket>(ticketCreateDto);
+
             await _context.Tickets.AddAsync(ticketEntity);
             await _context.SaveChangesAsync();
+
             var result = _mapper.Map<TicketGetDto>(ticketEntity);
 
             return CreatedAtAction(nameof(GetById), new { id = ticketEntity.Id }, result);
@@ -58,12 +64,14 @@ namespace StudentGroup.Controllers
         public async Task<IActionResult> UpdateTicket(int id, TicketUpdateDto ticketUpdateDto)
         {
             var ticketEntity = await _context.Tickets.FindAsync(id);
+
             if (ticketEntity == null)
-            {
                 return NotFound();
-            }
+
             _mapper.Map(ticketUpdateDto, ticketEntity);
+
             await _context.SaveChangesAsync();
+
             return NoContent();
         }
 
@@ -71,12 +79,13 @@ namespace StudentGroup.Controllers
         public async Task<IActionResult> DeleteTicket(int id)
         {
             var ticketEntity = await _context.Tickets.FindAsync(id);
+
             if (ticketEntity == null)
-            {
                 return NotFound();
-            }
+
             _context.Tickets.Remove(ticketEntity);
             await _context.SaveChangesAsync();
+
             return NoContent();
         }
     }

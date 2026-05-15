@@ -11,5 +11,7 @@
         public string? Phone { get; set; }
 
         public string? LogoUrl { get; set; }
+
+        public ICollection<Event> Events { get; set; } = new List<Event>();
     }
 }
