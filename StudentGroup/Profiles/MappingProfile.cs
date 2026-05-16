@@ -4,6 +4,8 @@ using StudentGroup.DTOs.EventDtos;
 using StudentGroup.DTOs.OrganizerDtos;
 using StudentGroup.DTOs.TicketDtos;
 using StudentGroup.Data;
+using StudentGroup.Models;
+using StudentGroup.DTOs.UserDtos;
 
 namespace StudentGroup.Profiles
 {
@@ -21,6 +23,7 @@ namespace StudentGroup.Profiles
                 CreateMap<Ticket, TicketGetDto>();
                 CreateMap<TicketCreate, Ticket>();
                 CreateMap<TicketUpdateDto, Ticket>();
+            CreateMap<RegisterDto, AppUser>();
         }
     }
 }

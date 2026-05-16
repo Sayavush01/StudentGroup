@@ -1,9 +1,12 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
+using Microsoft.AspNetCore.SignalR;
+using Microsoft.EntityFrameworkCore;
 using StudentGroup.Entities;
+using StudentGroup.Models;
 
 namespace StudentGroup.Data
 {
-    public class EventManagementDb: DbContext
+    public class EventManagementDb: IdentityDbContext<AppUser> 
     {
         public EventManagementDb(DbContextOptions<EventManagementDb> options) : base(options)
         {
@@ -15,6 +18,7 @@ namespace StudentGroup.Data
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             modelBuilder.ApplyConfigurationsFromAssembly(typeof(EventManagementDb).Assembly);
+                base.OnModelCreating(modelBuilder);
         }
     }
 }
