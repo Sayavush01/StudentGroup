@@ -45,5 +45,17 @@ public class AccountController
     
           return Ok("Roles created");
     }
+
+    [HttpPost("login")]
+    public async Task<IActionResult> Login([FromBody] LoginDto loginDto)
+    {
+        var user = await userManager.FindByNameAsync(loginDto.Username);
+        if (user == null)
+            return BadRequest("Invalid username or password");
+        var result = await userManager.CheckPasswordAsync(user, loginDto.Password);
+        if (!result)
+            return BadRequest("Invalid username or password");
+        return Ok("Login successful");
+    }
 }
 
