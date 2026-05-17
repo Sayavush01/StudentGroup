@@ -1,11 +1,14 @@
-
 using AutoMapper;
 using FluentValidation;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
 using StudentGroup.Data;
 using StudentGroup.Models;
+using StudentGroup.Services;
 using System;
+using System.Text;
 
 namespace StudentGroup
 {
@@ -31,6 +34,56 @@ namespace StudentGroup
                 )
                 .AddEntityFrameworkStores<EventManagementDb>()
                 .AddDefaultTokenProviders();
+
+            builder.Services.AddScoped<JwtService>();
+            builder.Services.AddAuthentication(x =>
+            {
+                x.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+                x.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+                x.DefaultScheme = JwtBearerDefaults.AuthenticationScheme;
+            })
+    .AddJwtBearer("Bearer", options =>
+    {
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ClockSkew = TimeSpan.Zero,
+            ValidateIssuer = true,
+            ValidateAudience = true,
+            ValidateLifetime = true,
+            ValidateIssuerSigningKey = true,
+            ValidIssuer = builder.Configuration["Jwt:Issuer"],
+            ValidAudience = builder.Configuration["Jwt:Audience"],
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]))
+        };
+    });
+            builder.Services.AddAuthorization();
+
+            builder.Services.AddSwaggerGen(c =>
+            {
+                c.AddSecurityDefinition("Bearer", new Microsoft.OpenApi.Models.OpenApiSecurityScheme
+                {
+                    Description = "JWT Authorization header using the Bearer scheme. Example: \"Authorization: Bearer {token}\"",
+                    Name = "Authorization",
+                    In = Microsoft.OpenApi.Models.ParameterLocation.Header,
+                    Type = Microsoft.OpenApi.Models.SecuritySchemeType.ApiKey,
+                    Scheme = "Bearer"
+                });
+                c.AddSecurityRequirement(new Microsoft.OpenApi.Models.OpenApiSecurityRequirement
+                {
+                    {
+                        new Microsoft.OpenApi.Models.OpenApiSecurityScheme
+                        {
+                            Reference = new Microsoft.OpenApi.Models.OpenApiReference
+                            {
+                                Type = Microsoft.OpenApi.Models.ReferenceType.SecurityScheme,
+                                Id = "Bearer"
+                            }
+                        },
+                        Array.Empty<string>()
+                    }
+                });
+            }); 
+
             //using (var scope = builder.Services.BuildServiceProvider().CreateScope())
             //{
             //    var userManager = scope.ServiceProvider.GetRequiredService<UserManager<AppUser>>();
@@ -48,7 +101,7 @@ namespace StudentGroup
             //    }
             //}
 
-                builder.Services.AddValidatorsFromAssemblyContaining<Program>();
+            builder.Services.AddValidatorsFromAssemblyContaining<Program>();
 
 
             builder.Services.AddControllers();
@@ -68,6 +121,8 @@ namespace StudentGroup
 
             app.UseHttpsRedirection();
 
+         
+            app.UseAuthentication();
             app.UseAuthorization();
 
             app.MapControllers();

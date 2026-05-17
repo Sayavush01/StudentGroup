@@ -1,4 +1,5 @@
 using AutoMapper;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using StudentGroup.Data;
@@ -10,6 +11,7 @@ namespace StudentGroup.Controllers
 {
     [Route("api/organizers")]
     [ApiController]
+    [Authorize(Roles = "Admin")]
     public class OrganizerController : ControllerBase
     {
         private readonly EventManagementDb _context;

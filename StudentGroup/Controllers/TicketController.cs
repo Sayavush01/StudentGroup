@@ -1,4 +1,5 @@
 using AutoMapper;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using StudentGroup.Data;
@@ -9,6 +10,7 @@ namespace StudentGroup.Controllers
 {
     [Route("api/tickets")]
     [ApiController]
+    [Authorize]
     public class TicketController : ControllerBase
     {
         private readonly EventManagementDb _context;

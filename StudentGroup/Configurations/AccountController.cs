@@ -1,10 +1,12 @@
 ﻿using AutoMapper;
 using FluentValidation;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
 using StudentGroup.DTOs.UserDtos;
 using StudentGroup.Models;
+using StudentGroup.Services;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
@@ -19,7 +21,8 @@ public class AccountController
     UserManager<AppUser> userManager,
     RoleManager<IdentityRole> roleManager,
     IMapper mapper,
-    IConfiguration config
+    IConfiguration config,
+    JwtService jwtService
     ) : ControllerBase
 {
     [HttpPost("register")]
@@ -58,32 +61,34 @@ public class AccountController
         if (user == null)
             return BadRequest("Invalid username or password");
 
-        var roles = await userManager.GetRolesAsync(user);
-        var claims = new List<Claim>
-        {
-            new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
-            new Claim(ClaimTypes.Name, user.UserName),
-            new Claim("Fullname", user.FullName)
-        };
-        claims.AddRange(roles.Select(r => new Claim(ClaimTypes.Role, r)));
-        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(config["Jwt:Key"]));
         var result = await userManager.CheckPasswordAsync(user, loginDto.Password);
         if (!result)
             return BadRequest("Invalid username or password");
-        var creds= new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
-         var jwtSecurityToken = new System.IdentityModel.Tokens.Jwt.JwtSecurityToken(
-            issuer: config["Jwt:Issuer"],
-            audience: config["Jwt:Audience"],   
-             claims: claims,
-            expires: DateTime.Now.AddDays(7),
-            signingCredentials: creds
-        );
-        var token = new JwtSecurityTokenHandler().WriteToken(jwtSecurityToken);
+
+        var roles = await userManager.GetRolesAsync(user);
+
         return Ok(new
         {
-            token
+            token= jwtService.GenerateToken(user, roles, config)
         });
     }
+
+    [HttpGet("profile")]
+    [Authorize]
+    public IActionResult Profile()
+    {
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        var username = User.Identity?.Name;
+        var fullName = User.FindFirstValue("FullName");
+        var roles = User.Claims.Where(c => c.Type == ClaimTypes.Role).Select(c => c.Value).ToList();
+        return Ok(new
+        {
+            UserId = userId,
+            Username = username,
+            Roles = roles
+        });
+    }
+
 
     
 }
