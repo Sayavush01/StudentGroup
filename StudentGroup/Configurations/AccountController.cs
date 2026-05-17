@@ -2,8 +2,12 @@
 using FluentValidation;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.IdentityModel.Tokens;
 using StudentGroup.DTOs.UserDtos;
 using StudentGroup.Models;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
+using System.Text;
 
 namespace StudentGroup.Configurations;
 [Route("api/account")]
@@ -14,7 +18,8 @@ public class AccountController
     IValidator<RegisterDto> registerValidator,
     UserManager<AppUser> userManager,
     RoleManager<IdentityRole> roleManager,
-    IMapper mapper
+    IMapper mapper,
+    IConfiguration config
     ) : ControllerBase
 {
     [HttpPost("register")]
@@ -52,10 +57,34 @@ public class AccountController
         var user = await userManager.FindByNameAsync(loginDto.Username);
         if (user == null)
             return BadRequest("Invalid username or password");
+
+        var roles = await userManager.GetRolesAsync(user);
+        var claims = new List<Claim>
+        {
+            new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
+            new Claim(ClaimTypes.Name, user.UserName),
+            new Claim("Fullname", user.FullName)
+        };
+        claims.AddRange(roles.Select(r => new Claim(ClaimTypes.Role, r)));
+        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(config["Jwt:Key"]));
         var result = await userManager.CheckPasswordAsync(user, loginDto.Password);
         if (!result)
             return BadRequest("Invalid username or password");
-        return Ok("Login successful");
+        var creds= new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
+         var jwtSecurityToken = new System.IdentityModel.Tokens.Jwt.JwtSecurityToken(
+            issuer: config["Jwt:Issuer"],
+            audience: config["Jwt:Audience"],   
+             claims: claims,
+            expires: DateTime.Now.AddDays(7),
+            signingCredentials: creds
+        );
+        var token = new JwtSecurityTokenHandler().WriteToken(jwtSecurityToken);
+        return Ok(new
+        {
+            token
+        });
     }
+
+    
 }
 
