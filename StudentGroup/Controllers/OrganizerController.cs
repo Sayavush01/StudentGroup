@@ -18,6 +18,7 @@ namespace StudentGroup.Controllers
         private readonly IMapper _mapper;
 
         public OrganizerController(EventManagementDb context, IMapper mapper)
+
         {
             _context = context;
             _mapper = mapper;
