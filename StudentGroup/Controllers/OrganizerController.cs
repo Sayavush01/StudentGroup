@@ -11,7 +11,7 @@ namespace StudentGroup.Controllers
 {
     [Route("api/organizers")]
     [ApiController]
-    [Authorize(Roles = "Admin")]
+    [Authorize]
     public class OrganizerController : ControllerBase
     {
         private readonly EventManagementDb _context;

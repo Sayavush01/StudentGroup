@@ -23,5 +23,9 @@ public class EventCreateDtoValidator : AbstractValidator<EventCreateDto>
         RuleFor(x => x.Location)
             .NotEmpty()
             .MaximumLength(200);
+
+        RuleFor(x => x.OrganizerId)
+            .GreaterThan(0)
+            .WithMessage("A valid OrganizerId must be provided.");
     }
 }

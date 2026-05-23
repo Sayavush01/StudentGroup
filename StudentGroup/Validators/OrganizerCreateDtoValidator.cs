@@ -1,9 +1,9 @@
 ﻿using FluentValidation;
-using StudentGroup.Entities;
+using StudentGroup.DTOs.OrganizerDtos;
 
 namespace EventManagementApi.Validators;
 
-public class OrganizerCreateDtoValidator : AbstractValidator<Organizer>
+public class OrganizerCreateDtoValidator : AbstractValidator<OrganizerCreate>
 {
     public OrganizerCreateDtoValidator()
     {

@@ -8,7 +8,6 @@ namespace StudentGroup.DTOs.UserDtos
         public string FullName { get; set; } = null!;
         public string Email { get; set; } = null!;
         public string Password { get; set; } = null!;
-        [Compare("Password", ErrorMessage = "Passwords do not match.")]
         public string Username { get; set; } = null!;
         public string ConfirmPassword { get; set; } = null!;
 

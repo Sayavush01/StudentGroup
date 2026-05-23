@@ -47,6 +47,12 @@ namespace StudentGroup.Controllers
         [HttpPost]
         public async Task<IActionResult> CreateEvent(EventCreateDto eventCreateDto)
         {
+            var organizerExists = await _context.Organizers.AnyAsync(o => o.Id == eventCreateDto.OrganizerId);
+            if (!organizerExists)
+            {
+                return BadRequest($"Organizer with ID {eventCreateDto.OrganizerId} does not exist.");
+            }
+
             var eventEntity = _mapper.Map<Event>(eventCreateDto);
 
             await _context.Events.AddAsync(eventEntity);

@@ -11,7 +11,7 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
 
-namespace StudentGroup.Configurations;
+namespace StudentGroup.Controllers;
 [Route("api/account")]
 [ApiController]
 

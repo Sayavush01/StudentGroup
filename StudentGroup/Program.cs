@@ -21,7 +21,7 @@ namespace StudentGroup
             builder.Services.AddDbContext<EventManagementDb>(options =>
                 options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-            builder.Services.AddAutoMapper(typeof(Program));
+            builder.Services.AddAutoMapper(cfg => {}, typeof(Program).Assembly);
 
             builder.Services.AddIdentity<AppUser, IdentityRole>(opt=>
                 {
@@ -53,7 +53,9 @@ namespace StudentGroup
             ValidateIssuerSigningKey = true,
             ValidIssuer = builder.Configuration["Jwt:Issuer"],
             ValidAudience = builder.Configuration["Jwt:Audience"],
-            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]))
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"])),
+            RoleClaimType = System.Security.Claims.ClaimTypes.Role,
+            NameClaimType = System.Security.Claims.ClaimTypes.Name
         };
     });
             builder.Services.AddAuthorization();
@@ -62,11 +64,12 @@ namespace StudentGroup
             {
                 c.AddSecurityDefinition("Bearer", new Microsoft.OpenApi.Models.OpenApiSecurityScheme
                 {
-                    Description = "JWT Authorization header using the Bearer scheme. Example: \"Authorization: Bearer {token}\"",
+                    Description = "JWT Authorization header using the Bearer scheme.",
                     Name = "Authorization",
                     In = Microsoft.OpenApi.Models.ParameterLocation.Header,
-                    Type = Microsoft.OpenApi.Models.SecuritySchemeType.ApiKey,
-                    Scheme = "Bearer"
+                    Type = Microsoft.OpenApi.Models.SecuritySchemeType.Http,
+                    Scheme = "bearer",
+                    BearerFormat = "JWT"
                 });
                 c.AddSecurityRequirement(new Microsoft.OpenApi.Models.OpenApiSecurityRequirement
                 {
@@ -84,32 +87,43 @@ namespace StudentGroup
                 });
             }); 
 
-            //using (var scope = builder.Services.BuildServiceProvider().CreateScope())
-            //{
-            //    var userManager = scope.ServiceProvider.GetRequiredService<UserManager<AppUser>>();
-            //    var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
-            //    if (!roleManager.RoleExistsAsync("Admin").Result)
-            //    {
-            //        var role = new IdentityRole { Name = "Admin" };
-            //        roleManager.CreateAsync(role).Wait();
-            //    }
-            //    if (!userManager.Users.Any(u => u.UserName == "admin"))
-            //    {
-            //        var user = new AppUser { UserName = "admin", Email = "admin@example.com" };
-            //        userManager.CreateAsync(user, "Admin@123").Wait();
-            //        userManager.AddToRoleAsync(user, "Admin").Wait();
-            //    }
-            //}
-
             builder.Services.AddValidatorsFromAssemblyContaining<Program>();
-
 
             builder.Services.AddControllers();
 
             builder.Services.AddEndpointsApiExplorer();
-            builder.Services.AddSwaggerGen();
+
+            builder.Services.AddCors(options =>
+            {
+                options.AddPolicy("AllowAll", policy =>
+                {
+                    policy.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader();
+                });
+            });
 
             var app = builder.Build();
+
+            using (var scope = app.Services.CreateScope())
+            {
+                var userManager = scope.ServiceProvider.GetRequiredService<UserManager<AppUser>>();
+                var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
+                if (!roleManager.RoleExistsAsync("Admin").Result)
+                {
+                    var role = new IdentityRole { Name = "Admin" };
+                    roleManager.CreateAsync(role).Wait();
+                }
+                if (!roleManager.RoleExistsAsync("Member").Result)
+                {
+                    var role = new IdentityRole { Name = "Member" };
+                    roleManager.CreateAsync(role).Wait();
+                }
+                if (!userManager.Users.Any(u => u.UserName == "admin"))
+                {
+                    var user = new AppUser { UserName = "admin", Email = "admin@example.com", FullName = "System Admin" };
+                    userManager.CreateAsync(user, "Admin@123").Wait();
+                    userManager.AddToRoleAsync(user, "Admin").Wait();
+                }
+            }
 
             app.UseStaticFiles();
 
@@ -119,6 +133,7 @@ namespace StudentGroup
                 app.UseSwaggerUI();
             }
 
+            app.UseCors("AllowAll");
             app.UseHttpsRedirection();
 
          
