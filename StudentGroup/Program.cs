@@ -133,6 +133,7 @@ namespace StudentGroup
                 app.UseSwaggerUI();
             }
 
+            app.UseRouting();
             app.UseCors("AllowAll");
             app.UseHttpsRedirection();
 

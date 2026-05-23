@@ -47,7 +47,7 @@ namespace StudentGroup.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> CreateOrganizer(OrganizerCreate organizerCreateDto)
+        public async Task<IActionResult> CreateOrganizer([FromBody] OrganizerCreate organizerCreateDto)
         {
             var organizerEntity = _mapper.Map<Organizer>(organizerCreateDto);
 
@@ -60,7 +60,7 @@ namespace StudentGroup.Controllers
         }
 
         [HttpPut("{id}")]
-        public async Task<IActionResult> UpdateOrganizer(int id, OrganizerUpdateDto organizerUpdateDto)
+        public async Task<IActionResult> UpdateOrganizer(int id, [FromBody] OrganizerUpdateDto organizerUpdateDto)
         {
             var organizerEntity = await _context.Organizers.FindAsync(id);
 

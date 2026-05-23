@@ -101,7 +101,7 @@ public class AccountController
     }
 
     [HttpPost("forgot-password")]
-    public async Task<IActionResult> ForgotPassword(ForgotPasswordDto dto)
+    public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordDto dto)
     {
         var user = await userManager.FindByEmailAsync(dto.Email);
 
@@ -119,7 +119,7 @@ public class AccountController
     }
 
     [HttpPost("reset-password")]
-    public async Task<IActionResult> ResetPassword(ResetPasswordDto dto)
+    public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordDto dto)
     {
         var user = await userManager.FindByEmailAsync(dto.Email);
 
@@ -146,7 +146,7 @@ public class AccountController
 
 
     [HttpPost("send-email-confirmation")]
-    public async Task<IActionResult> SendEmailConfirmation(ForgotPasswordDto dto)
+    public async Task<IActionResult> SendEmailConfirmation([FromBody] ForgotPasswordDto dto)
     {
         var user = await userManager.FindByEmailAsync(dto.Email);
 
@@ -168,7 +168,7 @@ public class AccountController
 
 
     [HttpPost("confirm-email")]
-    public async Task<IActionResult> ConfirmEmail(ForgotPasswordDto dto, string token)
+    public async Task<IActionResult> ConfirmEmail([FromBody] ForgotPasswordDto dto, [FromQuery] string token)
     {
         var user = await userManager.FindByEmailAsync(dto.Email);
 

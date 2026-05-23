@@ -45,7 +45,7 @@ namespace StudentGroup.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> CreateTicket(TicketCreate ticketCreateDto)
+        public async Task<IActionResult> CreateTicket([FromBody] TicketCreate ticketCreateDto)
         {
             var eventExists = await _context.Events.AnyAsync(e => e.Id == ticketCreateDto.EventId);
 
@@ -63,7 +63,7 @@ namespace StudentGroup.Controllers
         }
 
         [HttpPut("{id}")]
-        public async Task<IActionResult> UpdateTicket(int id, TicketUpdateDto ticketUpdateDto)
+        public async Task<IActionResult> UpdateTicket(int id, [FromBody] TicketUpdateDto ticketUpdateDto)
         {
             var ticketEntity = await _context.Tickets.FindAsync(id);
 

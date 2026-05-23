@@ -45,7 +45,7 @@ namespace StudentGroup.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> CreateEvent(EventCreateDto eventCreateDto)
+        public async Task<IActionResult> CreateEvent([FromBody] EventCreateDto eventCreateDto)
         {
             var organizerExists = await _context.Organizers.AnyAsync(o => o.Id == eventCreateDto.OrganizerId);
             if (!organizerExists)
@@ -64,7 +64,7 @@ namespace StudentGroup.Controllers
         }
 
         [HttpPut("{id}")]
-        public async Task<IActionResult> UpdateEvent(int id, EventUpdatedto eventUpdateDto)
+        public async Task<IActionResult> UpdateEvent(int id, [FromBody] EventUpdatedto eventUpdateDto)
         {
             var eventEntity = await _context.Events.FindAsync(id);
 
@@ -110,7 +110,7 @@ namespace StudentGroup.Controllers
         }
 
         [HttpPost("{eventId}/tickets")]
-        public async Task<IActionResult> CreateTicketForEvent(int eventId, TicketCreate dto)
+        public async Task<IActionResult> CreateTicketForEvent(int eventId, [FromBody] TicketCreate dto)
         {
             var eventExists = await _context.Events.AnyAsync(e => e.Id == eventId);
 
