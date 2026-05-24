@@ -2,7 +2,7 @@
 
 namespace WebApplication1.Controllers
 {
-    public class UiAccountController : Controller
+    public class AccountControllerTesting : Controller
     {
         public IActionResult Register()
         {
