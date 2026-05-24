@@ -211,9 +211,17 @@ public class AccountController
         if (user == null)
             return NotFound("User not found.");
 
-        var decodedToken = Encoding.UTF8.GetString(
-            WebEncoders.Base64UrlDecode(token)
-        );
+        string decodedToken;
+        try 
+        {
+            decodedToken = Encoding.UTF8.GetString(
+                WebEncoders.Base64UrlDecode(token)
+            );
+        }
+        catch (FormatException) 
+        {
+            decodedToken = token; 
+        }
 
         var result = await userManager.ConfirmEmailAsync(user, decodedToken);
 
