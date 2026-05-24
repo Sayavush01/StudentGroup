@@ -36,6 +36,7 @@ namespace StudentGroup
                 .AddDefaultTokenProviders();
 
             builder.Services.AddScoped<JwtService>();
+            builder.Services.AddScoped<EmailService>(); 
             builder.Services.AddAuthentication(x =>
             {
                 x.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
@@ -126,6 +127,7 @@ namespace StudentGroup
             }
 
             app.UseStaticFiles();
+
 
             if (app.Environment.IsDevelopment())
             {

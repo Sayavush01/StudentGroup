@@ -25,7 +25,8 @@ public class AccountController
     RoleManager<IdentityRole> roleManager,
     IMapper mapper,
     IConfiguration config,
-    JwtService jwtService
+    JwtService jwtService,
+    EmailService emailService
     ) : ControllerBase
 {
     [HttpPost("register")]
@@ -126,15 +127,25 @@ public class AccountController
             return NotFound("User not found.");
 
         var token = await userManager.GeneratePasswordResetTokenAsync(user);
-        var encodedToken = Microsoft.AspNetCore.WebUtilities.WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(token));
 
-        return Ok(new
-        {
-            message = "Password reset token generated.",
-            token = encodedToken
-        });
+        var encodedToken = WebEncoders.Base64UrlEncode(
+            Encoding.UTF8.GetBytes(token)
+        );
+
+        var resetMessage = $@"
+        <h2>Password Reset</h2>
+        <p>Use this token to reset your password:</p>
+        <p><b>{encodedToken}</b></p>
+    ";
+
+        await emailService.SendEmailAsync(
+            dto.Email,
+            "Reset your password",
+            resetMessage
+        );
+
+        return Ok("Password reset token has been sent to your email.");
     }
-
     [HttpPost("reset-password")]
     public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordDto dto)
     {
@@ -176,11 +187,19 @@ public class AccountController
             Encoding.UTF8.GetBytes(token)
         );
 
-        return Ok(new
-        {
-            message = "Email confirmation token generated.",
-            token = encodedToken
-        });
+        var confirmationMessage = $@"
+        <h2>Email Confirmation</h2>
+        <p>Use this token to confirm your email:</p>
+        <p><b>{encodedToken}</b></p>
+    ";
+
+        await emailService.SendEmailAsync(
+            dto.Email,
+            "Confirm your email",
+            confirmationMessage
+        );
+
+        return Ok("Email confirmation token has been sent to your email.");
     }
 
 
@@ -192,15 +211,9 @@ public class AccountController
         if (user == null)
             return NotFound("User not found.");
 
-        string decodedToken;
-        try 
-        {
-            decodedToken = Encoding.UTF8.GetString(WebEncoders.Base64UrlDecode(token));
-        }
-        catch (FormatException) 
-        {
-            decodedToken = token; 
-        }
+        var decodedToken = Encoding.UTF8.GetString(
+            WebEncoders.Base64UrlDecode(token)
+        );
 
         var result = await userManager.ConfirmEmailAsync(user, decodedToken);
 

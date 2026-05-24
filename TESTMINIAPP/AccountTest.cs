@@ -20,6 +20,7 @@ public class AccountControllerTests
     private readonly Mock<IMapper> _mapperMock;
     private readonly Mock<IConfiguration> _configMock;
     private readonly Mock<JwtService> _jwtServiceMock;
+    private readonly Mock<EmailService> _emailServiceMock;
 
     public AccountControllerTests()
     {
@@ -29,6 +30,7 @@ public class AccountControllerTests
         _mapperMock = new Mock<IMapper>();
         _configMock = new Mock<IConfiguration>();
         _jwtServiceMock = new Mock<JwtService>();
+        _emailServiceMock = new Mock<EmailService>(_configMock.Object);
     }
 
     [Fact]
@@ -226,7 +228,8 @@ public class AccountControllerTests
             _roleManagerMock.Object,
             _mapperMock.Object,
             _configMock.Object,
-            _jwtServiceMock.Object
+            _jwtServiceMock.Object,
+            _emailServiceMock.Object
         );
     }
 
@@ -236,14 +239,14 @@ public class AccountControllerTests
 
         return new Mock<UserManager<AppUser>>(
             store.Object,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null
+            null!,
+            null!,
+            null!,
+            null!,
+            null!,
+            null!,
+            null!,
+            null!
         );
     }
 
@@ -253,10 +256,10 @@ public class AccountControllerTests
 
         return new Mock<RoleManager<IdentityRole>>(
             store.Object,
-            null,
-            null,
-            null,
-            null
+            null!,
+            null!,
+            null!,
+            null!
         );
     }
 }
