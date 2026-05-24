@@ -61,12 +61,29 @@ public class AccountController
     public async Task<IActionResult> Login([FromBody] LoginDto loginDto)
     {
         var user = await userManager.FindByNameAsync(loginDto.Username);
+
         if (user == null)
             return BadRequest("Invalid username or password");
 
         var result = await userManager.CheckPasswordAsync(user, loginDto.Password);
+
         if (!result)
             return BadRequest("Invalid username or password");
+
+        if (!await userManager.IsEmailConfirmedAsync(user))
+        {
+            var emailToken = await userManager.GenerateEmailConfirmationTokenAsync(user);
+
+            var encodedToken = WebEncoders.Base64UrlEncode(
+                Encoding.UTF8.GetBytes(emailToken)
+            );
+
+            return BadRequest(new
+            {
+                message = "Email is not confirmed. Please confirm your email first.",
+                confirmationToken = encodedToken
+            });
+        }
 
         var roles = await userManager.GetRolesAsync(user);
 
@@ -175,9 +192,15 @@ public class AccountController
         if (user == null)
             return NotFound("User not found.");
 
-        var decodedToken = Encoding.UTF8.GetString(
-            WebEncoders.Base64UrlDecode(token)
-        );
+        string decodedToken;
+        try 
+        {
+            decodedToken = Encoding.UTF8.GetString(WebEncoders.Base64UrlDecode(token));
+        }
+        catch (FormatException) 
+        {
+            decodedToken = token; 
+        }
 
         var result = await userManager.ConfirmEmailAsync(user, decodedToken);
 
