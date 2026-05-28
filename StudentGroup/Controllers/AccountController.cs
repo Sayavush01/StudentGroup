@@ -73,16 +73,9 @@ public class AccountController
 
         if (!await userManager.IsEmailConfirmedAsync(user))
         {
-            var emailToken = await userManager.GenerateEmailConfirmationTokenAsync(user);
-
-            var encodedToken = WebEncoders.Base64UrlEncode(
-                Encoding.UTF8.GetBytes(emailToken)
-            );
-
             return BadRequest(new
             {
-                message = "Email is not confirmed. Please confirm your email first.",
-                confirmationToken = encodedToken
+                message = "Email is not confirmed. Please confirm your email first."
             });
         }
 
