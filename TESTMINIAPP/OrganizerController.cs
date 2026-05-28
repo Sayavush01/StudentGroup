@@ -14,6 +14,7 @@ public class OrganizerControllerTests
 {
     private readonly Mock<IMapper> _mapperMock;
 
+
     public OrganizerControllerTests()
     {
         _mapperMock = new Mock<IMapper>();
