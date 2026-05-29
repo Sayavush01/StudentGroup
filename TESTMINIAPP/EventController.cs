@@ -35,8 +35,8 @@ public class EventControllerTests
     {
         var context = GetDbContext();
 
-        context.Events.Add(new Event { Id = 1, Title = "Concert" });
-        context.Events.Add(new Event { Id = 2, Title = "Conference" });
+        context.Events.Add(new Event { Id = 1, Title = "Concert", Location = "Stadium" });
+        context.Events.Add(new Event { Id = 2, Title = "Conference", Location = "Convention Center" });
         await context.SaveChangesAsync();
 
         var eventDtos = new List<EventGetdto>

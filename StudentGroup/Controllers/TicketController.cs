@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using StudentGroup.Data;
 using StudentGroup.DTOs.TicketDtos;
 using StudentGroup.Entities;
+using System.Security.Claims;
 
 namespace StudentGroup.Controllers
 {
@@ -25,7 +26,12 @@ namespace StudentGroup.Controllers
         [HttpGet]
         public async Task<IActionResult> GetAllTickets()
         {
-            var tickets = await _context.Tickets.ToListAsync();
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            var tickets = await _context.Tickets
+                .Include(t => t.Event)
+                .ThenInclude(e => e.Organizer)
+                .Where(t => t.Event.Organizer.AppUserId == userId)
+                .ToListAsync();
             var ticketDtos = _mapper.Map<List<TicketGetDto>>(tickets);
 
             return Ok(ticketDtos);
@@ -34,7 +40,11 @@ namespace StudentGroup.Controllers
         [HttpGet("{id}")]
         public async Task<IActionResult> GetById(int id)
         {
-            var ticketEntity = await _context.Tickets.FindAsync(id);
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            var ticketEntity = await _context.Tickets
+                .Include(t => t.Event)
+                .ThenInclude(e => e.Organizer)
+                .FirstOrDefaultAsync(t => t.Id == id && t.Event.Organizer.AppUserId == userId);
 
             if (ticketEntity == null)
                 return NotFound();
@@ -47,10 +57,13 @@ namespace StudentGroup.Controllers
         [HttpPost]
         public async Task<IActionResult> CreateTicket([FromBody] TicketCreate ticketCreateDto)
         {
-            var eventExists = await _context.Events.AnyAsync(e => e.Id == ticketCreateDto.EventId);
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            var eventExists = await _context.Events
+                .Include(e => e.Organizer)
+                .AnyAsync(e => e.Id == ticketCreateDto.EventId && e.Organizer.AppUserId == userId);
 
             if (!eventExists)
-                return BadRequest("Event does not exist.");
+                return BadRequest("Event does not exist or does not belong to you.");
 
             var ticketEntity = _mapper.Map<Ticket>(ticketCreateDto);
 
@@ -65,7 +78,11 @@ namespace StudentGroup.Controllers
         [HttpPut("{id}")]
         public async Task<IActionResult> UpdateTicket(int id, [FromBody] TicketUpdateDto ticketUpdateDto)
         {
-            var ticketEntity = await _context.Tickets.FindAsync(id);
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            var ticketEntity = await _context.Tickets
+                .Include(t => t.Event)
+                .ThenInclude(e => e.Organizer)
+                .FirstOrDefaultAsync(t => t.Id == id && t.Event.Organizer.AppUserId == userId);
 
             if (ticketEntity == null)
                 return NotFound();
@@ -80,7 +97,11 @@ namespace StudentGroup.Controllers
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteTicket(int id)
         {
-            var ticketEntity = await _context.Tickets.FindAsync(id);
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            var ticketEntity = await _context.Tickets
+                .Include(t => t.Event)
+                .ThenInclude(e => e.Organizer)
+                .FirstOrDefaultAsync(t => t.Id == id && t.Event.Organizer.AppUserId == userId);
 
             if (ticketEntity == null)
                 return NotFound();

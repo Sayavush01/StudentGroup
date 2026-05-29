@@ -6,6 +6,7 @@ using StudentGroup.Data;
 using StudentGroup.DTOs.EventDtos;
 using StudentGroup.DTOs.OrganizerDtos;
 using StudentGroup.Entities;
+using System.Security.Claims;
 
 namespace StudentGroup.Controllers
 {
@@ -27,7 +28,10 @@ namespace StudentGroup.Controllers
         [HttpGet]
         public async Task<IActionResult> GetAllOrganizers()
         {
-            var organizers = await _context.Organizers.ToListAsync();
+            var userId = User.FindFirstValue(System.Security.Claims.ClaimTypes.NameIdentifier);
+            var organizers = await _context.Organizers
+                .Where(o => o.AppUserId == userId)
+                .ToListAsync();
             var organizerDtos = _mapper.Map<List<OrganizerGetDto>>(organizers);
 
             return Ok(organizerDtos);
@@ -36,7 +40,8 @@ namespace StudentGroup.Controllers
         [HttpGet("{id}")]
         public async Task<IActionResult> GetById(int id)
         {
-            var organizerEntity = await _context.Organizers.FindAsync(id);
+            var userId = User.FindFirstValue(System.Security.Claims.ClaimTypes.NameIdentifier);
+            var organizerEntity = await _context.Organizers.FirstOrDefaultAsync(o => o.Id == id && o.AppUserId == userId);
 
             if (organizerEntity == null)
                 return NotFound();
@@ -49,7 +54,9 @@ namespace StudentGroup.Controllers
         [HttpPost]
         public async Task<IActionResult> CreateOrganizer([FromBody] OrganizerCreate organizerCreateDto)
         {
+            var userId = User.FindFirstValue(System.Security.Claims.ClaimTypes.NameIdentifier);
             var organizerEntity = _mapper.Map<Organizer>(organizerCreateDto);
+            organizerEntity.AppUserId = userId;
 
             await _context.Organizers.AddAsync(organizerEntity);
             await _context.SaveChangesAsync();
@@ -62,7 +69,8 @@ namespace StudentGroup.Controllers
         [HttpPut("{id}")]
         public async Task<IActionResult> UpdateOrganizer(int id, [FromBody] OrganizerUpdateDto organizerUpdateDto)
         {
-            var organizerEntity = await _context.Organizers.FindAsync(id);
+            var userId = User.FindFirstValue(System.Security.Claims.ClaimTypes.NameIdentifier);
+            var organizerEntity = await _context.Organizers.FirstOrDefaultAsync(o => o.Id == id && o.AppUserId == userId);
 
             if (organizerEntity == null)
                 return NotFound();
@@ -77,7 +85,8 @@ namespace StudentGroup.Controllers
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteOrganizer(int id)
         {
-            var organizerEntity = await _context.Organizers.FindAsync(id);
+            var userId = User.FindFirstValue(System.Security.Claims.ClaimTypes.NameIdentifier);
+            var organizerEntity = await _context.Organizers.FirstOrDefaultAsync(o => o.Id == id && o.AppUserId == userId);
 
             if (organizerEntity == null)
                 return NotFound();
@@ -91,7 +100,8 @@ namespace StudentGroup.Controllers
         [HttpGet("{organizerId}/events")]
         public async Task<IActionResult> GetEventsByOrganizer(int organizerId)
         {
-            var organizerExists = await _context.Organizers.AnyAsync(o => o.Id == organizerId);
+            var userId = User.FindFirstValue(System.Security.Claims.ClaimTypes.NameIdentifier);
+            var organizerExists = await _context.Organizers.AnyAsync(o => o.Id == organizerId && o.AppUserId == userId);
 
             if (!organizerExists)
                 return NotFound("Organizer not found.");
@@ -108,7 +118,8 @@ namespace StudentGroup.Controllers
         [HttpPost("{organizerId}/logo")]
         public async Task<IActionResult> UploadLogo(int organizerId, IFormFile file)
         {
-            var organizer = await _context.Organizers.FindAsync(organizerId);
+            var userId = User.FindFirstValue(System.Security.Claims.ClaimTypes.NameIdentifier);
+            var organizer = await _context.Organizers.FirstOrDefaultAsync(o => o.Id == organizerId && o.AppUserId == userId);
 
             if (organizer == null)
                 return NotFound("Organizer not found.");

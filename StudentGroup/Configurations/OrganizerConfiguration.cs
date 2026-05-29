@@ -18,6 +18,11 @@ namespace StudentGroup.Configurations
                 .HasMaxLength(20);
             builder.Property(o => o.LogoUrl)
                 .HasMaxLength(200);
+
+            builder.HasOne(o => o.AppUser)
+                .WithMany()
+                .HasForeignKey(o => o.AppUserId)
+                .OnDelete(Microsoft.EntityFrameworkCore.DeleteBehavior.Restrict);
         }
     }
 }

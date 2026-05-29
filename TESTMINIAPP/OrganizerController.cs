@@ -231,6 +231,7 @@ public class OrganizerControllerTests
         {
             Id = 1,
             Title = "Concert",
+            Location = "Stadium",
             OrganizerId = 1
         });
 

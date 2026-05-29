@@ -6,11 +6,14 @@ using StudentGroup.DTOs.EventDtos;
 using StudentGroup.DTOs.OrganizerDtos;
 using StudentGroup.DTOs.TicketDtos;
 using StudentGroup.Entities;
+using Microsoft.AspNetCore.Authorization;
+using System.Security.Claims;
 
 namespace StudentGroup.Controllers
 {
     [Route("api/events")]
     [ApiController]
+    [Authorize]
     public class EventController : ControllerBase
     {
         private readonly EventManagementDb _context;
@@ -25,7 +28,11 @@ namespace StudentGroup.Controllers
         [HttpGet]
         public async Task<IActionResult> GetAllEvents()
         {
-            var events = await _context.Events.ToListAsync();
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            var events = await _context.Events
+                .Include(e => e.Organizer)
+                .Where(e => e.Organizer.AppUserId == userId)
+                .ToListAsync();
             var eventDtos = _mapper.Map<List<EventGetdto>>(events);
 
             return Ok(eventDtos);
@@ -34,7 +41,10 @@ namespace StudentGroup.Controllers
         [HttpGet("{id}")]
         public async Task<IActionResult> GetById(int id)
         {
-            var eventEntity = await _context.Events.FindAsync(id);
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            var eventEntity = await _context.Events
+                .Include(e => e.Organizer)
+                .FirstOrDefaultAsync(e => e.Id == id && e.Organizer.AppUserId == userId);
 
             if (eventEntity == null)
                 return NotFound();
@@ -47,10 +57,11 @@ namespace StudentGroup.Controllers
         [HttpPost]
         public async Task<IActionResult> CreateEvent([FromBody] EventCreateDto eventCreateDto)
         {
-            var organizerExists = await _context.Organizers.AnyAsync(o => o.Id == eventCreateDto.OrganizerId);
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            var organizerExists = await _context.Organizers.AnyAsync(o => o.Id == eventCreateDto.OrganizerId && o.AppUserId == userId);
             if (!organizerExists)
             {
-                return BadRequest($"Organizer with ID {eventCreateDto.OrganizerId} does not exist.");
+                return BadRequest($"Organizer with ID {eventCreateDto.OrganizerId} does not exist or does not belong to you.");
             }
 
             var eventEntity = _mapper.Map<Event>(eventCreateDto);
@@ -66,7 +77,10 @@ namespace StudentGroup.Controllers
         [HttpPut("{id}")]
         public async Task<IActionResult> UpdateEvent(int id, [FromBody] EventUpdatedto eventUpdateDto)
         {
-            var eventEntity = await _context.Events.FindAsync(id);
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            var eventEntity = await _context.Events
+                .Include(e => e.Organizer)
+                .FirstOrDefaultAsync(e => e.Id == id && e.Organizer.AppUserId == userId);
 
             if (eventEntity == null)
                 return NotFound();
@@ -81,7 +95,10 @@ namespace StudentGroup.Controllers
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteEvent(int id)
         {
-            var eventEntity = await _context.Events.FindAsync(id);
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            var eventEntity = await _context.Events
+                .Include(e => e.Organizer)
+                .FirstOrDefaultAsync(e => e.Id == id && e.Organizer.AppUserId == userId);
 
             if (eventEntity == null)
                 return NotFound();
@@ -95,10 +112,13 @@ namespace StudentGroup.Controllers
         [HttpGet("{eventId}/tickets")]
         public async Task<IActionResult> GetTicketsForEvent(int eventId)
         {
-            var eventExists = await _context.Events.AnyAsync(e => e.Id == eventId);
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            var eventExists = await _context.Events
+                .Include(e => e.Organizer)
+                .AnyAsync(e => e.Id == eventId && e.Organizer.AppUserId == userId);
 
             if (!eventExists)
-                return NotFound("Event not found.");
+                return NotFound("Event not found or access denied.");
 
             var tickets = await _context.Tickets
                 .Where(t => t.EventId == eventId)
@@ -112,10 +132,13 @@ namespace StudentGroup.Controllers
         [HttpPost("{eventId}/tickets")]
         public async Task<IActionResult> CreateTicketForEvent(int eventId, [FromBody] TicketCreate dto)
         {
-            var eventExists = await _context.Events.AnyAsync(e => e.Id == eventId);
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            var eventExists = await _context.Events
+                .Include(e => e.Organizer)
+                .AnyAsync(e => e.Id == eventId && e.Organizer.AppUserId == userId);
 
             if (!eventExists)
-                return NotFound("Event not found.");
+                return NotFound("Event not found or access denied.");
 
             var ticket = _mapper.Map<Ticket>(dto);
             ticket.EventId = eventId;
@@ -131,12 +154,13 @@ namespace StudentGroup.Controllers
         [HttpGet("{eventId}/organizer")]
         public async Task<IActionResult> GetOrganizerForEvent(int eventId)
         {
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
             var eventEntity = await _context.Events
                 .Include(e => e.Organizer)
-                .FirstOrDefaultAsync(e => e.Id == eventId);
+                .FirstOrDefaultAsync(e => e.Id == eventId && e.Organizer.AppUserId == userId);
 
             if (eventEntity == null)
-                return NotFound("Event not found.");
+                return NotFound("Event not found or access denied.");
 
             var result = _mapper.Map<OrganizerGetDto>(eventEntity.Organizer);
 
@@ -146,10 +170,13 @@ namespace StudentGroup.Controllers
         [HttpPost("{eventId}/banner")]
         public async Task<IActionResult> UploadBanner(int eventId, IFormFile file)
         {
-            var eventEntity = await _context.Events.FindAsync(eventId);
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            var eventEntity = await _context.Events
+                .Include(e => e.Organizer)
+                .FirstOrDefaultAsync(e => e.Id == eventId && e.Organizer.AppUserId == userId);
 
             if (eventEntity == null)
-                return NotFound("Event not found.");
+                return NotFound("Event not found or access denied.");
 
             if (file == null || file.Length == 0)
                 return BadRequest("No file uploaded.");

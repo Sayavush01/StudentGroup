@@ -12,6 +12,9 @@
 
         public string? LogoUrl { get; set; }
 
+        public string? AppUserId { get; set; }
+        public StudentGroup.Models.AppUser? AppUser { get; set; }
+
         public ICollection<Event> Events { get; set; } = new List<Event>();
     }
 }
