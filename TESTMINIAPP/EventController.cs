@@ -77,7 +77,8 @@ public class EventControllerTests
         var eventEntity = new Event
         {
             Id = 1,
-            Title = "Concert"
+            Title = "Concert",
+            Location = "Stadium"
         };
 
         context.Events.Add(eventEntity);
@@ -149,7 +150,8 @@ public class EventControllerTests
         var eventEntity = new Event
         {
             Id = 1,
-            Title = "Concert"
+            Title = "Concert",
+                Location = "Stadium"
         };
 
         context.Events.Add(eventEntity);
@@ -180,7 +182,7 @@ public class EventControllerTests
     {
         var context = GetDbContext();
 
-        context.Events.Add(new Event { Id = 1, Title = "Concert" });
+        context.Events.Add(new Event { Id = 1, Title = "Concert", Location = "Stadium" });
 
         context.Tickets.Add(new Ticket
         {
@@ -231,7 +233,8 @@ public class EventControllerTests
         context.Events.Add(new Event
         {
             Id = 1,
-            Title = "Concert"
+            Title = "Concert",
+            Location = "Stadium"
         });
 
         await context.SaveChangesAsync();
@@ -300,7 +303,8 @@ public class EventControllerTests
         context.Events.Add(new Event
         {
             Id = 1,
-            Title = "Concert"
+            Title = "Concert",
+            Location = "Stadium"
         });
 
         await context.SaveChangesAsync();

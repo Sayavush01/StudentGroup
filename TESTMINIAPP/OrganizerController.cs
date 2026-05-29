@@ -34,8 +34,8 @@ public class OrganizerControllerTests
     {
         var context = GetDbContext();
 
-        context.Organizers.Add(new Organizer { Id = 1, Name = "Organizer 1" });
-        context.Organizers.Add(new Organizer { Id = 2, Name = "Organizer 2" });
+        context.Organizers.Add(new Organizer { Id = 1, Name = "Organizer 1", Email = "organizer1@example.com" });
+        context.Organizers.Add(new Organizer { Id = 2, Name = "Organizer 2", Email = "organizer2@example.com" });
         await context.SaveChangesAsync();
 
         var organizerDtos = new List<OrganizerGetDto>
@@ -76,7 +76,8 @@ public class OrganizerControllerTests
         var organizer = new Organizer
         {
             Id = 1,
-            Name = "Organizer 1"
+            Name = "Organizer 1",
+            Email = "organizer1@example.com"
         };
 
         context.Organizers.Add(organizer);
@@ -106,7 +107,8 @@ public class OrganizerControllerTests
         var organizer = new Organizer
         {
             Id = 1,
-            Name = "Organizer 1"
+            Name = "Organizer 1",
+            Email = "organizer1@example.com"
         };
 
         var organizerDto = new OrganizerGetDto();
@@ -150,7 +152,8 @@ public class OrganizerControllerTests
         var organizer = new Organizer
         {
             Id = 1,
-            Name = "Organizer 1"
+            Name = "Organizer 1",
+            Email = "organizer1@example.com"
         };
 
         context.Organizers.Add(organizer);
@@ -185,7 +188,8 @@ public class OrganizerControllerTests
         var organizer = new Organizer
         {
             Id = 1,
-            Name = "Organizer 1"
+            Name = "Organizer 1",
+            Email = "organizer1@example.com"
         };
 
         context.Organizers.Add(organizer);
@@ -219,7 +223,8 @@ public class OrganizerControllerTests
         context.Organizers.Add(new Organizer
         {
             Id = 1,
-            Name = "Organizer 1"
+            Name = "Organizer 1",
+            Email = "organizer1@example.com"
         });
 
         context.Events.Add(new Event
@@ -269,7 +274,8 @@ public class OrganizerControllerTests
         context.Organizers.Add(new Organizer
         {
             Id = 1,
-            Name = "Organizer 1"
+            Name = "Organizer 1",
+            Email = "organizer1@example.com"
         });
 
         await context.SaveChangesAsync();
