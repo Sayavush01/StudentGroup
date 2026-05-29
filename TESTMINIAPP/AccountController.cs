@@ -173,6 +173,117 @@ public class AccountControllerTests
     }
 
     [Fact]
+    public async Task Login_ShouldReturnBadRequest_WhenEmailIsNotConfirmed()
+    {
+        var dto = new LoginDto { Username = "testuser", Password = "Password123!" };
+        var user = new AppUser { UserName = dto.Username, Email = "test@gmail.com" };
+
+        _userManagerMock.Setup(u => u.FindByNameAsync(dto.Username)).ReturnsAsync(user);
+        _userManagerMock.Setup(u => u.CheckPasswordAsync(user, dto.Password)).ReturnsAsync(true);
+        _userManagerMock.Setup(u => u.IsEmailConfirmedAsync(user)).ReturnsAsync(false);
+
+        var controller = CreateController();
+        var result = await controller.Login(dto);
+
+        Assert.IsType<BadRequestObjectResult>(result);
+    }
+
+    [Fact]
+    public async Task Login_ShouldReturnOk_AndRequire2FA_When2FAIsEnabled()
+    {
+        var dto = new LoginDto { Username = "testuser", Password = "Password123!" };
+        var user = new AppUser { Id = Guid.NewGuid().ToString(), UserName = dto.Username, Email = "test@gmail.com", FullName = "Test User" };
+
+        _userManagerMock.Setup(u => u.FindByNameAsync(dto.Username)).ReturnsAsync(user);
+        _userManagerMock.Setup(u => u.CheckPasswordAsync(user, dto.Password)).ReturnsAsync(true);
+        _userManagerMock.Setup(u => u.IsEmailConfirmedAsync(user)).ReturnsAsync(true);
+        _userManagerMock.Setup(u => u.GetTwoFactorEnabledAsync(user)).ReturnsAsync(true);
+        _userManagerMock.Setup(u => u.GenerateTwoFactorTokenAsync(user, TokenOptions.DefaultEmailProvider)).ReturnsAsync("123456");
+
+        var controller = CreateController();
+        var result = await controller.Login(dto);
+
+        Assert.IsType<OkObjectResult>(result);
+    }
+
+    [Fact]
+    public async Task VerifyTwoFactor_ShouldReturnNotFound_WhenUserDoesNotExist()
+    {
+        var dto = new TwoFactorLoginDto { Email = "test@gmail.com", Code = "123456" };
+        _userManagerMock.Setup(u => u.FindByEmailAsync(dto.Email)).ReturnsAsync((AppUser?)null);
+
+        var controller = CreateController();
+        var result = await controller.VerifyTwoFactor(dto);
+
+        var notFound = Assert.IsType<NotFoundObjectResult>(result);
+        Assert.Equal("User not found.", notFound.Value);
+    }
+
+    [Fact]
+    public async Task VerifyTwoFactor_ShouldReturnBadRequest_WhenCodeIsInvalid()
+    {
+        var dto = new TwoFactorLoginDto { Email = "test@gmail.com", Code = "123456" };
+        var user = new AppUser { Id = Guid.NewGuid().ToString(), Email = dto.Email, UserName = "testuser", FullName = "Test User" };
+
+        _userManagerMock.Setup(u => u.FindByEmailAsync(dto.Email)).ReturnsAsync(user);
+        _userManagerMock.Setup(u => u.VerifyTwoFactorTokenAsync(user, TokenOptions.DefaultEmailProvider, dto.Code)).ReturnsAsync(false);
+
+        var controller = CreateController();
+        var result = await controller.VerifyTwoFactor(dto);
+
+        var badRequest = Assert.IsType<BadRequestObjectResult>(result);
+        Assert.Equal("Invalid two-factor code.", badRequest.Value);
+    }
+
+    [Fact]
+    public async Task VerifyTwoFactor_ShouldReturnOk_WhenCodeIsValid()
+    {
+        var dto = new TwoFactorLoginDto { Email = "test@gmail.com", Code = "123456" };
+        var user = new AppUser { Id = Guid.NewGuid().ToString(), Email = dto.Email, UserName = "testuser", FullName = "Test User" };
+
+        _userManagerMock.Setup(u => u.FindByEmailAsync(dto.Email)).ReturnsAsync(user);
+        _userManagerMock.Setup(u => u.VerifyTwoFactorTokenAsync(user, TokenOptions.DefaultEmailProvider, dto.Code)).ReturnsAsync(true);
+        _userManagerMock.Setup(u => u.GetRolesAsync(user)).ReturnsAsync(new List<string> { "Member" });
+        _configMock.Setup(c => c["Jwt:Key"]).Returns(new string('a', 32)); // 256 bits needed for HMAC
+        _configMock.Setup(c => c["Jwt:Issuer"]).Returns("issuer");
+        _configMock.Setup(c => c["Jwt:Audience"]).Returns("audience");
+
+        var controller = CreateController();
+        var result = await controller.VerifyTwoFactor(dto);
+
+        Assert.IsType<OkObjectResult>(result);
+    }
+
+    [Fact]
+    public async Task EnableTwoFactor_ShouldReturnNotFound_WhenUserDoesNotExist()
+    {
+        var dto = new ForgotPasswordDto { Email = "notfound@gmail.com" };
+        _userManagerMock.Setup(u => u.FindByEmailAsync(dto.Email)).ReturnsAsync((AppUser?)null);
+
+        var controller = CreateController();
+        var result = await controller.EnableTwoFactor(dto);
+
+        var notFound = Assert.IsType<NotFoundObjectResult>(result);
+        Assert.Equal("User not found.", notFound.Value);
+    }
+
+    [Fact]
+    public async Task EnableTwoFactor_ShouldReturnOk_WhenUserExists()
+    {
+        var dto = new ForgotPasswordDto { Email = "test@gmail.com" };
+        var user = new AppUser { Email = dto.Email };
+
+        _userManagerMock.Setup(u => u.FindByEmailAsync(dto.Email)).ReturnsAsync(user);
+        _userManagerMock.Setup(u => u.SetTwoFactorEnabledAsync(user, true)).ReturnsAsync(IdentityResult.Success);
+
+        var controller = CreateController();
+        var result = await controller.EnableTwoFactor(dto);
+
+        var okResult = Assert.IsType<OkObjectResult>(result);
+        Assert.Equal("Two-factor authentication enabled.", okResult.Value);
+    }
+
+    [Fact]
     public async Task ForgotPassword_ShouldReturnNotFound_WhenUserDoesNotExist()
     {
         var dto = new ForgotPasswordDto

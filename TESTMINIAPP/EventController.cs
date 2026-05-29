@@ -9,6 +9,8 @@ using StudentGroup.DTOs.OrganizerDtos;
 using StudentGroup.DTOs.TicketDtos;
 using StudentGroup.Entities;
 using StudentGroup.Models;
+using System.Security.Claims;
+using Microsoft.AspNetCore.Http;
 
 namespace TESTMINIAPP;
 
@@ -19,6 +21,20 @@ public class EventControllerTests
     public EventControllerTests()
     {
         _mapperMock = new Mock<IMapper>();
+    }
+
+    private EventController CreateController(EventManagementDb context)
+    {
+        var controller = new EventController(context, _mapperMock.Object);
+        var user = new ClaimsPrincipal(new ClaimsIdentity(new Claim[]
+        {
+            new Claim(ClaimTypes.NameIdentifier, "test-user")
+        }, "mock"));
+        controller.ControllerContext = new ControllerContext
+        {
+            HttpContext = new DefaultHttpContext { User = user }
+        };
+        return controller;
     }
 
     private EventManagementDb GetDbContext()
@@ -35,8 +51,9 @@ public class EventControllerTests
     {
         var context = GetDbContext();
 
-        context.Events.Add(new Event { Id = 1, Title = "Concert", Location = "Stadium" });
-        context.Events.Add(new Event { Id = 2, Title = "Conference", Location = "Convention Center" });
+        var organizer = new Organizer { Id = 1, Name = "Org", Email = "org@test.com", AppUserId = "test-user" };
+        context.Events.Add(new Event { Id = 1, Title = "Concert", Location = "Stadium", OrganizerId = 1, Organizer = organizer });
+        context.Events.Add(new Event { Id = 2, Title = "Conference", Location = "Convention Center", OrganizerId = 1, Organizer = organizer });
         await context.SaveChangesAsync();
 
         var eventDtos = new List<EventGetdto>
@@ -49,7 +66,7 @@ public class EventControllerTests
             .Setup(m => m.Map<List<EventGetdto>>(It.IsAny<List<Event>>()))
             .Returns(eventDtos);
 
-        var controller = new EventController(context, _mapperMock.Object);
+        var controller = CreateController(context);
 
         var result = await controller.GetAllEvents();
 
@@ -62,7 +79,7 @@ public class EventControllerTests
     {
         var context = GetDbContext();
 
-        var controller = new EventController(context, _mapperMock.Object);
+        var controller = CreateController(context);
 
         var result = await controller.GetById(99);
 
@@ -78,7 +95,8 @@ public class EventControllerTests
         {
             Id = 1,
             Title = "Concert",
-            Location = "Stadium"
+            Location = "Stadium",
+            Organizer = new Organizer { Id = 1, Name = "Org", Email = "org@test.com", AppUserId = "test-user" }
         };
 
         context.Events.Add(eventEntity);
@@ -90,7 +108,7 @@ public class EventControllerTests
             .Setup(m => m.Map<EventGetdto>(It.IsAny<Event>()))
             .Returns(eventDto);
 
-        var controller = new EventController(context, _mapperMock.Object);
+        var controller = CreateController(context);
 
         var result = await controller.GetById(1);
 
@@ -108,12 +126,12 @@ public class EventControllerTests
             OrganizerId = 99
         };
 
-        var controller = new EventController(context, _mapperMock.Object);
+        var controller = CreateController(context);
 
         var result = await controller.CreateEvent(dto);
 
         var badRequest = Assert.IsType<BadRequestObjectResult>(result);
-        Assert.Equal("Organizer with ID 99 does not exist.", badRequest.Value);
+        Assert.Equal("Organizer with ID 99 does not exist or does not belong to you.", badRequest.Value);
     }
 
     [Fact]
@@ -123,7 +141,7 @@ public class EventControllerTests
 
         var dto = new EventUpdatedto();
 
-        var controller = new EventController(context, _mapperMock.Object);
+        var controller = CreateController(context);
 
         var result = await controller.UpdateEvent(99, dto);
 
@@ -135,7 +153,7 @@ public class EventControllerTests
     {
         var context = GetDbContext();
 
-        var controller = new EventController(context, _mapperMock.Object);
+        var controller = CreateController(context);
 
         var result = await controller.DeleteEvent(99);
 
@@ -151,13 +169,14 @@ public class EventControllerTests
         {
             Id = 1,
             Title = "Concert",
-                Location = "Stadium"
+            Location = "Stadium",
+            Organizer = new Organizer { Id = 1, Name = "Org", Email = "org@test.com", AppUserId = "test-user" }
         };
 
         context.Events.Add(eventEntity);
         await context.SaveChangesAsync();
 
-        var controller = new EventController(context, _mapperMock.Object);
+        var controller = CreateController(context);
 
         var result = await controller.DeleteEvent(1);
 
@@ -169,12 +188,12 @@ public class EventControllerTests
     {
         var context = GetDbContext();
 
-        var controller = new EventController(context, _mapperMock.Object);
+        var controller = CreateController(context);
 
         var result = await controller.GetTicketsForEvent(99);
 
         var notFound = Assert.IsType<NotFoundObjectResult>(result);
-        Assert.Equal("Event not found.", notFound.Value);
+        Assert.Equal("Event not found or access denied.", notFound.Value);
     }
 
     [Fact]
@@ -182,7 +201,8 @@ public class EventControllerTests
     {
         var context = GetDbContext();
 
-        context.Events.Add(new Event { Id = 1, Title = "Concert", Location = "Stadium" });
+        var org = new Organizer { Id = 1, Name = "Org", Email = "org@test.com", AppUserId = "test-user" };
+        context.Events.Add(new Event { Id = 1, Title = "Concert", Location = "Stadium", Organizer = org });
 
         context.Tickets.Add(new Ticket
         {
@@ -202,7 +222,7 @@ public class EventControllerTests
             .Setup(m => m.Map<List<TicketGetDto>>(It.IsAny<List<Ticket>>()))
             .Returns(ticketDtos);
 
-        var controller = new EventController(context, _mapperMock.Object);
+        var controller = CreateController(context);
 
         var result = await controller.GetTicketsForEvent(1);
 
@@ -217,12 +237,12 @@ public class EventControllerTests
 
         var dto = new TicketCreate();
 
-        var controller = new EventController(context, _mapperMock.Object);
+        var controller = CreateController(context);
 
         var result = await controller.CreateTicketForEvent(99, dto);
 
         var notFound = Assert.IsType<NotFoundObjectResult>(result);
-        Assert.Equal("Event not found.", notFound.Value);
+        Assert.Equal("Event not found or access denied.", notFound.Value);
     }
 
     [Fact]
@@ -230,11 +250,13 @@ public class EventControllerTests
     {
         var context = GetDbContext();
 
+        var org = new Organizer { Id = 1, Name = "Org", Email = "org@test.com", AppUserId = "test-user" };
         context.Events.Add(new Event
         {
             Id = 1,
             Title = "Concert",
-            Location = "Stadium"
+            Location = "Stadium",
+            Organizer = org
         });
 
         await context.SaveChangesAsync();
@@ -261,7 +283,7 @@ public class EventControllerTests
             .Setup(m => m.Map<TicketGetDto>(It.IsAny<Ticket>()))
             .Returns(ticketDto);
 
-        var controller = new EventController(context, _mapperMock.Object);
+        var controller = CreateController(context);
 
         var result = await controller.CreateTicketForEvent(1, dto);
 
@@ -274,12 +296,12 @@ public class EventControllerTests
     {
         var context = GetDbContext();
 
-        var controller = new EventController(context, _mapperMock.Object);
+        var controller = CreateController(context);
 
         var result = await controller.GetOrganizerForEvent(99);
 
         var notFound = Assert.IsType<NotFoundObjectResult>(result);
-        Assert.Equal("Event not found.", notFound.Value);
+        Assert.Equal("Event not found or access denied.", notFound.Value);
     }
 
     [Fact]
@@ -287,12 +309,12 @@ public class EventControllerTests
     {
         var context = GetDbContext();
 
-        var controller = new EventController(context, _mapperMock.Object);
+        var controller = CreateController(context);
 
         var result = await controller.UploadBanner(99, null);
 
         var notFound = Assert.IsType<NotFoundObjectResult>(result);
-        Assert.Equal("Event not found.", notFound.Value);
+        Assert.Equal("Event not found or access denied.", notFound.Value);
     }
 
     [Fact]
@@ -300,16 +322,18 @@ public class EventControllerTests
     {
         var context = GetDbContext();
 
+        var org = new Organizer { Id = 1, Name = "Org", Email = "org@test.com", AppUserId = "test-user" };
         context.Events.Add(new Event
         {
             Id = 1,
             Title = "Concert",
-            Location = "Stadium"
+            Location = "Stadium",
+            Organizer = org
         });
 
         await context.SaveChangesAsync();
 
-        var controller = new EventController(context, _mapperMock.Object);
+        var controller = CreateController(context);
 
         var result = await controller.UploadBanner(1, null);
 

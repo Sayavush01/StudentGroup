@@ -79,6 +79,64 @@ public class AccountController
             });
         }
 
+        if (await userManager.GetTwoFactorEnabledAsync(user))
+        {
+            var code = await userManager.GenerateTwoFactorTokenAsync(user, TokenOptions.DefaultEmailProvider);
+
+            var message = $@"
+        <h2>Two-Factor Authentication</h2>
+        <p>Your login code is:</p>
+        <h3>{code}</h3>
+    ";
+
+            await emailService.SendEmailAsync(
+                user.Email!,
+                "Your 2FA Login Code",
+                message
+            );
+
+            return Ok(new
+            {
+                message = "Two-factor code sent to your email.",
+                requiresTwoFactor = true,
+                email = user.Email
+            });
+        }
+
+        var roles = await userManager.GetRolesAsync(user);
+
+        var refreshToken = GenerateRefreshToken();
+
+        user.RefreshToken = refreshToken;
+        user.RefreshTokenExpiryTime = DateTime.UtcNow.AddDays(7);
+
+        await userManager.UpdateAsync(user);
+
+        return Ok(new
+        {
+            token = jwtService.GenerateToken(user, roles, config),
+            refreshToken = refreshToken
+        });
+
+    }
+
+    [HttpPost("verify-2fa")]
+    public async Task<IActionResult> VerifyTwoFactor([FromBody] TwoFactorLoginDto dto)
+    {
+        var user = await userManager.FindByEmailAsync(dto.Email);
+
+        if (user == null)
+            return NotFound("User not found.");
+
+        var isValid = await userManager.VerifyTwoFactorTokenAsync(
+            user,
+            TokenOptions.DefaultEmailProvider,
+            dto.Code
+        );
+
+        if (!isValid)
+            return BadRequest("Invalid two-factor code.");
+
         var roles = await userManager.GetRolesAsync(user);
 
         var refreshToken = GenerateRefreshToken();
@@ -94,7 +152,6 @@ public class AccountController
             refreshToken = refreshToken
         });
     }
-
     [HttpGet("profile")]
     [Authorize]
     public IActionResult Profile()
@@ -258,6 +315,18 @@ public class AccountController
         rng.GetBytes(randomBytes);
 
         return Convert.ToBase64String(randomBytes);
+    }
+    [HttpPost("enable-2fa")]
+    public async Task<IActionResult> EnableTwoFactor([FromBody] ForgotPasswordDto dto)
+    {
+        var user = await userManager.FindByEmailAsync(dto.Email);
+
+        if (user == null)
+            return NotFound("User not found.");
+
+        await userManager.SetTwoFactorEnabledAsync(user, true);
+
+        return Ok("Two-factor authentication enabled.");
     }
 }
 

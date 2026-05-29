@@ -7,6 +7,8 @@ using StudentGroup.Data;
 using StudentGroup.DTOs.EventDtos;
 using StudentGroup.DTOs.OrganizerDtos;
 using StudentGroup.Entities;
+using System.Security.Claims;
+using Microsoft.AspNetCore.Http;
 
 namespace TESTMINIAPP;
 
@@ -18,6 +20,20 @@ public class OrganizerControllerTests
     public OrganizerControllerTests()
     {
         _mapperMock = new Mock<IMapper>();
+    }
+
+    private OrganizerController CreateController(EventManagementDb context)
+    {
+        var controller = new OrganizerController(context, _mapperMock.Object);
+        var user = new ClaimsPrincipal(new ClaimsIdentity(new Claim[]
+        {
+            new Claim(ClaimTypes.NameIdentifier, "test-user")
+        }, "mock"));
+        controller.ControllerContext = new ControllerContext
+        {
+            HttpContext = new DefaultHttpContext { User = user }
+        };
+        return controller;
     }
 
     private EventManagementDb GetDbContext()
@@ -34,8 +50,8 @@ public class OrganizerControllerTests
     {
         var context = GetDbContext();
 
-        context.Organizers.Add(new Organizer { Id = 1, Name = "Organizer 1", Email = "organizer1@example.com" });
-        context.Organizers.Add(new Organizer { Id = 2, Name = "Organizer 2", Email = "organizer2@example.com" });
+        context.Organizers.Add(new Organizer { Id = 1, Name = "Organizer 1", Email = "organizer1@example.com", AppUserId = "test-user" });
+        context.Organizers.Add(new Organizer { Id = 2, Name = "Organizer 2", Email = "organizer2@example.com", AppUserId = "test-user" });
         await context.SaveChangesAsync();
 
         var organizerDtos = new List<OrganizerGetDto>
@@ -48,7 +64,7 @@ public class OrganizerControllerTests
             .Setup(m => m.Map<List<OrganizerGetDto>>(It.IsAny<List<Organizer>>()))
             .Returns(organizerDtos);
 
-        var controller = new OrganizerController(context, _mapperMock.Object);
+        var controller = CreateController(context);
 
         var result = await controller.GetAllOrganizers();
 
@@ -61,7 +77,7 @@ public class OrganizerControllerTests
     {
         var context = GetDbContext();
 
-        var controller = new OrganizerController(context, _mapperMock.Object);
+        var controller = CreateController(context);
 
         var result = await controller.GetById(99);
 
@@ -77,7 +93,8 @@ public class OrganizerControllerTests
         {
             Id = 1,
             Name = "Organizer 1",
-            Email = "organizer1@example.com"
+            Email = "organizer1@example.com",
+            AppUserId = "test-user"
         };
 
         context.Organizers.Add(organizer);
@@ -89,7 +106,7 @@ public class OrganizerControllerTests
             .Setup(m => m.Map<OrganizerGetDto>(It.IsAny<Organizer>()))
             .Returns(organizerDto);
 
-        var controller = new OrganizerController(context, _mapperMock.Object);
+        var controller = CreateController(context);
 
         var result = await controller.GetById(1);
 
@@ -108,7 +125,8 @@ public class OrganizerControllerTests
         {
             Id = 1,
             Name = "Organizer 1",
-            Email = "organizer1@example.com"
+            Email = "organizer1@example.com",
+            AppUserId = "test-user"
         };
 
         var organizerDto = new OrganizerGetDto();
@@ -121,7 +139,7 @@ public class OrganizerControllerTests
             .Setup(m => m.Map<OrganizerGetDto>(It.IsAny<Organizer>()))
             .Returns(organizerDto);
 
-        var controller = new OrganizerController(context, _mapperMock.Object);
+        var controller = CreateController(context);
 
         var result = await controller.CreateOrganizer(dto);
 
@@ -137,7 +155,7 @@ public class OrganizerControllerTests
 
         var dto = new OrganizerUpdateDto();
 
-        var controller = new OrganizerController(context, _mapperMock.Object);
+        var controller = CreateController(context);
 
         var result = await controller.UpdateOrganizer(99, dto);
 
@@ -153,7 +171,8 @@ public class OrganizerControllerTests
         {
             Id = 1,
             Name = "Organizer 1",
-            Email = "organizer1@example.com"
+            Email = "organizer1@example.com",
+            AppUserId = "test-user"
         };
 
         context.Organizers.Add(organizer);
@@ -161,7 +180,7 @@ public class OrganizerControllerTests
 
         var dto = new OrganizerUpdateDto();
 
-        var controller = new OrganizerController(context, _mapperMock.Object);
+        var controller = CreateController(context);
 
         var result = await controller.UpdateOrganizer(1, dto);
 
@@ -173,7 +192,7 @@ public class OrganizerControllerTests
     {
         var context = GetDbContext();
 
-        var controller = new OrganizerController(context, _mapperMock.Object);
+        var controller = CreateController(context);
 
         var result = await controller.DeleteOrganizer(99);
 
@@ -189,13 +208,14 @@ public class OrganizerControllerTests
         {
             Id = 1,
             Name = "Organizer 1",
-            Email = "organizer1@example.com"
+            Email = "organizer1@example.com",
+            AppUserId = "test-user"
         };
 
         context.Organizers.Add(organizer);
         await context.SaveChangesAsync();
 
-        var controller = new OrganizerController(context, _mapperMock.Object);
+        var controller = CreateController(context);
 
         var result = await controller.DeleteOrganizer(1);
 
@@ -207,7 +227,7 @@ public class OrganizerControllerTests
     {
         var context = GetDbContext();
 
-        var controller = new OrganizerController(context, _mapperMock.Object);
+        var controller = CreateController(context);
 
         var result = await controller.GetEventsByOrganizer(99);
 
@@ -224,7 +244,8 @@ public class OrganizerControllerTests
         {
             Id = 1,
             Name = "Organizer 1",
-            Email = "organizer1@example.com"
+            Email = "organizer1@example.com",
+            AppUserId = "test-user"
         });
 
         context.Events.Add(new Event
@@ -246,7 +267,7 @@ public class OrganizerControllerTests
             .Setup(m => m.Map<List<EventGetdto>>(It.IsAny<List<Event>>()))
             .Returns(eventDtos);
 
-        var controller = new OrganizerController(context, _mapperMock.Object);
+        var controller = CreateController(context);
 
         var result = await controller.GetEventsByOrganizer(1);
 
@@ -259,7 +280,7 @@ public class OrganizerControllerTests
     {
         var context = GetDbContext();
 
-        var controller = new OrganizerController(context, _mapperMock.Object);
+        var controller = CreateController(context);
 
         var result = await controller.UploadLogo(99, null);
 
@@ -276,12 +297,13 @@ public class OrganizerControllerTests
         {
             Id = 1,
             Name = "Organizer 1",
-            Email = "organizer1@example.com"
+            Email = "organizer1@example.com",
+            AppUserId = "test-user"
         });
 
         await context.SaveChangesAsync();
 
-        var controller = new OrganizerController(context, _mapperMock.Object);
+        var controller = CreateController(context);
 
         var result = await controller.UploadLogo(1, null);
 

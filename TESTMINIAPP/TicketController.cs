@@ -6,6 +6,9 @@ using StudentGroup.Controllers;
 using StudentGroup.Data;
 using StudentGroup.DTOs.TicketDtos;
 using StudentGroup.Entities;
+using StudentGroup.Models;
+using System.Security.Claims;
+using Microsoft.AspNetCore.Http;
 
 namespace TESTMINIAPP;
 
@@ -16,6 +19,20 @@ public class TicketControllerTests
     public TicketControllerTests()
     {
         _mapperMock = new Mock<IMapper>();
+    }
+
+    private TicketController CreateController(EventManagementDb context)
+    {
+        var controller = new TicketController(context, _mapperMock.Object);
+        var user = new ClaimsPrincipal(new ClaimsIdentity(new Claim[]
+        {
+            new Claim(ClaimTypes.NameIdentifier, "test-user")
+        }, "mock"));
+        controller.ControllerContext = new ControllerContext
+        {
+            HttpContext = new DefaultHttpContext { User = user }
+        };
+        return controller;
     }
 
     private EventManagementDb GetDbContext()
@@ -32,8 +49,11 @@ public class TicketControllerTests
     {
         var context = GetDbContext();
 
-        context.Tickets.Add(new Ticket { Id = 1, Type = "VIP" });
-        context.Tickets.Add(new Ticket { Id = 2, Type = "Standard" });
+        var organizer = new Organizer { Id = 1, Name = "Org", Email = "org@test.com", AppUserId = "test-user" };
+        var ev = new Event { Id = 1, Title = "Concert", Location = "Stadium", OrganizerId = 1, Organizer = organizer };
+        
+        context.Tickets.Add(new Ticket { Id = 1, Type = "VIP", Event = ev });
+        context.Tickets.Add(new Ticket { Id = 2, Type = "Standard", Event = ev });
         await context.SaveChangesAsync();
 
         var ticketDtos = new List<TicketGetDto>
@@ -46,7 +66,7 @@ public class TicketControllerTests
             .Setup(m => m.Map<List<TicketGetDto>>(It.IsAny<List<Ticket>>()))
             .Returns(ticketDtos);
 
-        var controller = new TicketController(context, _mapperMock.Object);
+        var controller = CreateController(context);
 
         var result = await controller.GetAllTickets();
 
@@ -59,7 +79,7 @@ public class TicketControllerTests
     {
         var context = GetDbContext();
 
-        var controller = new TicketController(context, _mapperMock.Object);
+        var controller = CreateController(context);
 
         var result = await controller.GetById(99);
 
@@ -71,10 +91,14 @@ public class TicketControllerTests
     {
         var context = GetDbContext();
 
+        var organizer = new Organizer { Id = 1, Name = "Org", Email = "org@test.com", AppUserId = "test-user" };
+        var ev = new Event { Id = 1, Title = "Concert", Location = "Stadium", OrganizerId = 1, Organizer = organizer };
+
         var ticket = new Ticket
         {
             Id = 1,
-            Type = "VIP"
+            Type = "VIP",
+            Event = ev
         };
 
         context.Tickets.Add(ticket);
@@ -86,7 +110,7 @@ public class TicketControllerTests
             .Setup(m => m.Map<TicketGetDto>(It.IsAny<Ticket>()))
             .Returns(ticketDto);
 
-        var controller = new TicketController(context, _mapperMock.Object);
+        var controller = CreateController(context);
 
         var result = await controller.GetById(1);
 
@@ -104,12 +128,12 @@ public class TicketControllerTests
             EventId = 99
         };
 
-        var controller = new TicketController(context, _mapperMock.Object);
+        var controller = CreateController(context);
 
         var result = await controller.CreateTicket(dto);
 
         var badRequest = Assert.IsType<BadRequestObjectResult>(result);
-        Assert.Equal("Event does not exist.", badRequest.Value);
+        Assert.Equal("Event does not exist or does not belong to you.", badRequest.Value);
     }
 
     [Fact]
@@ -119,7 +143,7 @@ public class TicketControllerTests
 
         var dto = new TicketUpdateDto();
 
-        var controller = new TicketController(context, _mapperMock.Object);
+        var controller = CreateController(context);
 
         var result = await controller.UpdateTicket(99, dto);
 
@@ -131,7 +155,7 @@ public class TicketControllerTests
     {
         var context = GetDbContext();
 
-        var controller = new TicketController(context, _mapperMock.Object);
+        var controller = CreateController(context);
 
         var result = await controller.DeleteTicket(99);
 
@@ -143,16 +167,20 @@ public class TicketControllerTests
     {
         var context = GetDbContext();
 
+        var organizer = new Organizer { Id = 1, Name = "Org", Email = "org@test.com", AppUserId = "test-user" };
+        var ev = new Event { Id = 1, Title = "Concert", Location = "Stadium", OrganizerId = 1, Organizer = organizer };
+
         var ticket = new Ticket
         {
             Id = 1,
-            Type = "VIP"
+            Type = "VIP",
+            Event = ev
         };
 
         context.Tickets.Add(ticket);
         await context.SaveChangesAsync();
 
-        var controller = new TicketController(context, _mapperMock.Object);
+        var controller = CreateController(context);
 
         var result = await controller.DeleteTicket(1);
 
