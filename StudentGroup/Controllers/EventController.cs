@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using StudentGroup.Data;
@@ -6,7 +7,7 @@ using StudentGroup.DTOs.EventDtos;
 using StudentGroup.DTOs.OrganizerDtos;
 using StudentGroup.DTOs.TicketDtos;
 using StudentGroup.Entities;
-using Microsoft.AspNetCore.Authorization;
+using StudentGroup.Models;
 using System.Security.Claims;
 
 namespace StudentGroup.Controllers
@@ -35,7 +36,12 @@ namespace StudentGroup.Controllers
                 .ToListAsync();
             var eventDtos = _mapper.Map<List<EventGetdto>>(events);
 
-            return Ok(eventDtos);
+            return Ok(new ApiResponse<List<EventGetdto>>
+            {
+                Success = true,
+                Message = "Events retrieved successfully.",
+                Data = eventDtos
+            });
         }
 
         [HttpGet("{id}")]
@@ -51,7 +57,21 @@ namespace StudentGroup.Controllers
 
             var eventDto = _mapper.Map<EventGetdto>(eventEntity);
 
-            return Ok(eventDto);
+            if (eventEntity == null)
+            {
+                return NotFound(new ApiResponse<string>
+                {
+                    Success = false,
+                    Message = "Event not found.",
+                    Data = null
+                });
+            }
+            return Ok(new ApiResponse<EventGetdto>
+            {
+                Success = true,
+                Message = "Event retrieved successfully.",
+                Data = eventDto
+            });
         }
 
         [HttpPost]
@@ -61,7 +81,11 @@ namespace StudentGroup.Controllers
             var organizerExists = await _context.Organizers.AnyAsync(o => o.Id == eventCreateDto.OrganizerId && o.AppUserId == userId);
             if (!organizerExists)
             {
-                return BadRequest($"Organizer with ID {eventCreateDto.OrganizerId} does not exist or does not belong to you.");
+                return BadRequest(new ApiResponse<string>
+                {
+                    Success = false,
+                    Message = $"Organizer with ID {eventCreateDto.OrganizerId} does not exist or does not belong to you."
+                });
             }
 
             var eventEntity = _mapper.Map<Event>(eventCreateDto);
@@ -71,7 +95,15 @@ namespace StudentGroup.Controllers
 
             var result = _mapper.Map<EventGetdto>(eventEntity);
 
-            return CreatedAtAction(nameof(GetById), new { id = eventEntity.Id }, result);
+            return CreatedAtAction(
+         nameof(GetById),
+         new { id = eventEntity.Id },
+         new ApiResponse<EventGetdto>
+         {
+             Success = true,
+             Message = "Event created successfully.",
+             Data = result
+         });
         }
 
         [HttpPut("{id}")]
@@ -89,7 +121,11 @@ namespace StudentGroup.Controllers
 
             await _context.SaveChangesAsync();
 
-            return NoContent();
+            return Ok(new ApiResponse<string>
+            {
+                Success = true,
+                Message = "Event updated successfully."
+            });
         }
 
         [HttpDelete("{id}")]
@@ -106,7 +142,11 @@ namespace StudentGroup.Controllers
             _context.Events.Remove(eventEntity);
             await _context.SaveChangesAsync();
 
-            return NoContent();
+            return Ok(new ApiResponse<string>
+            {
+                Success = true,
+                Message = "Event deleted successfully."
+            });
         }
 
         [HttpGet("{eventId}/tickets")]
@@ -196,10 +236,14 @@ namespace StudentGroup.Controllers
 
             await _context.SaveChangesAsync();
 
-            return Ok(new
+            return Ok(new ApiResponse<object>
             {
-                message = "Banner uploaded successfully.",
-                bannerImageUrl = eventEntity.BannerImageUrl
+                Success = true,
+                Message = "Banner uploaded successfully.",
+                Data = new
+                {
+                    bannerImageUrl = eventEntity.BannerImageUrl
+                }
             });
         }
     }

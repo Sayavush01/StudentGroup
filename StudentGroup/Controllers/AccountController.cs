@@ -178,6 +178,7 @@ public class AccountController
 
         var token = await userManager.GeneratePasswordResetTokenAsync(user);
 
+
         var encodedToken = WebEncoders.Base64UrlEncode(
             Encoding.UTF8.GetBytes(token)
         );
@@ -317,6 +318,7 @@ public class AccountController
         return Convert.ToBase64String(randomBytes);
     }
     [HttpPost("enable-2fa")]
+  
     public async Task<IActionResult> EnableTwoFactor([FromBody] ForgotPasswordDto dto)
     {
         var user = await userManager.FindByEmailAsync(dto.Email);
