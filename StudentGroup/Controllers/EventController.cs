@@ -30,10 +30,12 @@ namespace StudentGroup.Controllers
         public async Task<IActionResult> GetAllEvents()
         {
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
             var events = await _context.Events
                 .Include(e => e.Organizer)
                 .Where(e => e.Organizer.AppUserId == userId)
                 .ToListAsync();
+
             var eventDtos = _mapper.Map<List<EventGetdto>>(events);
 
             return Ok(new ApiResponse<List<EventGetdto>>
@@ -48,24 +50,23 @@ namespace StudentGroup.Controllers
         public async Task<IActionResult> GetById(int id)
         {
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
             var eventEntity = await _context.Events
                 .Include(e => e.Organizer)
                 .FirstOrDefaultAsync(e => e.Id == id && e.Organizer.AppUserId == userId);
-
-            if (eventEntity == null)
-                return NotFound();
-
-            var eventDto = _mapper.Map<EventGetdto>(eventEntity);
 
             if (eventEntity == null)
             {
                 return NotFound(new ApiResponse<string>
                 {
                     Success = false,
-                    Message = "Event not found.",
+                    Message = "Event not found or access denied.",
                     Data = null
                 });
             }
+
+            var eventDto = _mapper.Map<EventGetdto>(eventEntity);
+
             return Ok(new ApiResponse<EventGetdto>
             {
                 Success = true,
@@ -78,13 +79,17 @@ namespace StudentGroup.Controllers
         public async Task<IActionResult> CreateEvent([FromBody] EventCreateDto eventCreateDto)
         {
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            var organizerExists = await _context.Organizers.AnyAsync(o => o.Id == eventCreateDto.OrganizerId && o.AppUserId == userId);
+
+            var organizerExists = await _context.Organizers
+                .AnyAsync(o => o.Id == eventCreateDto.OrganizerId && o.AppUserId == userId);
+
             if (!organizerExists)
             {
                 return BadRequest(new ApiResponse<string>
                 {
                     Success = false,
-                    Message = $"Organizer with ID {eventCreateDto.OrganizerId} does not exist or does not belong to you."
+                    Message = $"Organizer with ID {eventCreateDto.OrganizerId} does not exist or does not belong to you.",
+                    Data = null
                 });
             }
 
@@ -96,26 +101,34 @@ namespace StudentGroup.Controllers
             var result = _mapper.Map<EventGetdto>(eventEntity);
 
             return CreatedAtAction(
-         nameof(GetById),
-         new { id = eventEntity.Id },
-         new ApiResponse<EventGetdto>
-         {
-             Success = true,
-             Message = "Event created successfully.",
-             Data = result
-         });
+                nameof(GetById),
+                new { id = eventEntity.Id },
+                new ApiResponse<EventGetdto>
+                {
+                    Success = true,
+                    Message = "Event created successfully.",
+                    Data = result
+                });
         }
 
         [HttpPut("{id}")]
         public async Task<IActionResult> UpdateEvent(int id, [FromBody] EventUpdatedto eventUpdateDto)
         {
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
             var eventEntity = await _context.Events
                 .Include(e => e.Organizer)
                 .FirstOrDefaultAsync(e => e.Id == id && e.Organizer.AppUserId == userId);
 
             if (eventEntity == null)
-                return NotFound();
+            {
+                return NotFound(new ApiResponse<string>
+                {
+                    Success = false,
+                    Message = "Event not found or access denied.",
+                    Data = null
+                });
+            }
 
             _mapper.Map(eventUpdateDto, eventEntity);
 
@@ -124,7 +137,8 @@ namespace StudentGroup.Controllers
             return Ok(new ApiResponse<string>
             {
                 Success = true,
-                Message = "Event updated successfully."
+                Message = "Event updated successfully.",
+                Data = null
             });
         }
 
@@ -132,12 +146,20 @@ namespace StudentGroup.Controllers
         public async Task<IActionResult> DeleteEvent(int id)
         {
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
             var eventEntity = await _context.Events
                 .Include(e => e.Organizer)
                 .FirstOrDefaultAsync(e => e.Id == id && e.Organizer.AppUserId == userId);
 
             if (eventEntity == null)
-                return NotFound();
+            {
+                return NotFound(new ApiResponse<string>
+                {
+                    Success = false,
+                    Message = "Event not found or access denied.",
+                    Data = null
+                });
+            }
 
             _context.Events.Remove(eventEntity);
             await _context.SaveChangesAsync();
@@ -145,7 +167,8 @@ namespace StudentGroup.Controllers
             return Ok(new ApiResponse<string>
             {
                 Success = true,
-                Message = "Event deleted successfully."
+                Message = "Event deleted successfully.",
+                Data = null
             });
         }
 
@@ -153,12 +176,20 @@ namespace StudentGroup.Controllers
         public async Task<IActionResult> GetTicketsForEvent(int eventId)
         {
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
             var eventExists = await _context.Events
                 .Include(e => e.Organizer)
                 .AnyAsync(e => e.Id == eventId && e.Organizer.AppUserId == userId);
 
             if (!eventExists)
-                return NotFound("Event not found or access denied.");
+            {
+                return NotFound(new ApiResponse<string>
+                {
+                    Success = false,
+                    Message = "Event not found or access denied.",
+                    Data = null
+                });
+            }
 
             var tickets = await _context.Tickets
                 .Where(t => t.EventId == eventId)
@@ -166,19 +197,32 @@ namespace StudentGroup.Controllers
 
             var result = _mapper.Map<List<TicketGetDto>>(tickets);
 
-            return Ok(result);
+            return Ok(new ApiResponse<List<TicketGetDto>>
+            {
+                Success = true,
+                Message = "Tickets retrieved successfully.",
+                Data = result
+            });
         }
 
         [HttpPost("{eventId}/tickets")]
         public async Task<IActionResult> CreateTicketForEvent(int eventId, [FromBody] TicketCreate dto)
         {
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
             var eventExists = await _context.Events
                 .Include(e => e.Organizer)
                 .AnyAsync(e => e.Id == eventId && e.Organizer.AppUserId == userId);
 
             if (!eventExists)
-                return NotFound("Event not found or access denied.");
+            {
+                return NotFound(new ApiResponse<string>
+                {
+                    Success = false,
+                    Message = "Event not found or access denied.",
+                    Data = null
+                });
+            }
 
             var ticket = _mapper.Map<Ticket>(dto);
             ticket.EventId = eventId;
@@ -188,38 +232,71 @@ namespace StudentGroup.Controllers
 
             var result = _mapper.Map<TicketGetDto>(ticket);
 
-            return Ok(result);
+            return Ok(new ApiResponse<TicketGetDto>
+            {
+                Success = true,
+                Message = "Ticket created successfully.",
+                Data = result
+            });
         }
 
         [HttpGet("{eventId}/organizer")]
         public async Task<IActionResult> GetOrganizerForEvent(int eventId)
         {
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
             var eventEntity = await _context.Events
                 .Include(e => e.Organizer)
                 .FirstOrDefaultAsync(e => e.Id == eventId && e.Organizer.AppUserId == userId);
 
             if (eventEntity == null)
-                return NotFound("Event not found or access denied.");
+            {
+                return NotFound(new ApiResponse<string>
+                {
+                    Success = false,
+                    Message = "Event not found or access denied.",
+                    Data = null
+                });
+            }
 
             var result = _mapper.Map<OrganizerGetDto>(eventEntity.Organizer);
 
-            return Ok(result);
+            return Ok(new ApiResponse<OrganizerGetDto>
+            {
+                Success = true,
+                Message = "Organizer retrieved successfully.",
+                Data = result
+            });
         }
 
         [HttpPost("{eventId}/banner")]
         public async Task<IActionResult> UploadBanner(int eventId, IFormFile file)
         {
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
             var eventEntity = await _context.Events
                 .Include(e => e.Organizer)
                 .FirstOrDefaultAsync(e => e.Id == eventId && e.Organizer.AppUserId == userId);
 
             if (eventEntity == null)
-                return NotFound("Event not found or access denied.");
+            {
+                return NotFound(new ApiResponse<string>
+                {
+                    Success = false,
+                    Message = "Event not found or access denied.",
+                    Data = null
+                });
+            }
 
             if (file == null || file.Length == 0)
-                return BadRequest("No file uploaded.");
+            {
+                return BadRequest(new ApiResponse<string>
+                {
+                    Success = false,
+                    Message = "No file uploaded.",
+                    Data = null
+                });
+            }
 
             var folderPath = Path.Combine("wwwroot", "uploads", "events");
 

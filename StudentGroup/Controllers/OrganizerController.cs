@@ -6,6 +6,7 @@ using StudentGroup.Data;
 using StudentGroup.DTOs.EventDtos;
 using StudentGroup.DTOs.OrganizerDtos;
 using StudentGroup.Entities;
+using StudentGroup.Models;
 using System.Security.Claims;
 
 namespace StudentGroup.Controllers
@@ -19,7 +20,6 @@ namespace StudentGroup.Controllers
         private readonly IMapper _mapper;
 
         public OrganizerController(EventManagementDb context, IMapper mapper)
-
         {
             _context = context;
             _mapper = mapper;
@@ -28,33 +28,55 @@ namespace StudentGroup.Controllers
         [HttpGet]
         public async Task<IActionResult> GetAllOrganizers()
         {
-            var userId = User.FindFirstValue(System.Security.Claims.ClaimTypes.NameIdentifier);
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
             var organizers = await _context.Organizers
                 .Where(o => o.AppUserId == userId)
                 .ToListAsync();
+
             var organizerDtos = _mapper.Map<List<OrganizerGetDto>>(organizers);
 
-            return Ok(organizerDtos);
+            return Ok(new ApiResponse<List<OrganizerGetDto>>
+            {
+                Success = true,
+                Message = "Organizers retrieved successfully.",
+                Data = organizerDtos
+            });
         }
 
         [HttpGet("{id}")]
         public async Task<IActionResult> GetById(int id)
         {
-            var userId = User.FindFirstValue(System.Security.Claims.ClaimTypes.NameIdentifier);
-            var organizerEntity = await _context.Organizers.FirstOrDefaultAsync(o => o.Id == id && o.AppUserId == userId);
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+            var organizerEntity = await _context.Organizers
+                .FirstOrDefaultAsync(o => o.Id == id && o.AppUserId == userId);
 
             if (organizerEntity == null)
-                return NotFound();
+            {
+                return NotFound(new ApiResponse<string>
+                {
+                    Success = false,
+                    Message = "Organizer not found or access denied.",
+                    Data = null
+                });
+            }
 
             var organizerDto = _mapper.Map<OrganizerGetDto>(organizerEntity);
 
-            return Ok(organizerDto);
+            return Ok(new ApiResponse<OrganizerGetDto>
+            {
+                Success = true,
+                Message = "Organizer retrieved successfully.",
+                Data = organizerDto
+            });
         }
 
         [HttpPost]
         public async Task<IActionResult> CreateOrganizer([FromBody] OrganizerCreate organizerCreateDto)
         {
-            var userId = User.FindFirstValue(System.Security.Claims.ClaimTypes.NameIdentifier);
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
             var organizerEntity = _mapper.Map<Organizer>(organizerCreateDto);
             organizerEntity.AppUserId = userId;
 
@@ -63,48 +85,93 @@ namespace StudentGroup.Controllers
 
             var result = _mapper.Map<OrganizerGetDto>(organizerEntity);
 
-            return CreatedAtAction(nameof(GetById), new { id = organizerEntity.Id }, result);
+            return CreatedAtAction(
+                nameof(GetById),
+                new { id = organizerEntity.Id },
+                new ApiResponse<OrganizerGetDto>
+                {
+                    Success = true,
+                    Message = "Organizer created successfully.",
+                    Data = result
+                });
         }
 
         [HttpPut("{id}")]
         public async Task<IActionResult> UpdateOrganizer(int id, [FromBody] OrganizerUpdateDto organizerUpdateDto)
         {
-            var userId = User.FindFirstValue(System.Security.Claims.ClaimTypes.NameIdentifier);
-            var organizerEntity = await _context.Organizers.FirstOrDefaultAsync(o => o.Id == id && o.AppUserId == userId);
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+            var organizerEntity = await _context.Organizers
+                .FirstOrDefaultAsync(o => o.Id == id && o.AppUserId == userId);
 
             if (organizerEntity == null)
-                return NotFound();
+            {
+                return NotFound(new ApiResponse<string>
+                {
+                    Success = false,
+                    Message = "Organizer not found or access denied.",
+                    Data = null
+                });
+            }
 
             _mapper.Map(organizerUpdateDto, organizerEntity);
 
             await _context.SaveChangesAsync();
 
-            return NoContent();
+            return Ok(new ApiResponse<string>
+            {
+                Success = true,
+                Message = "Organizer updated successfully.",
+                Data = null
+            });
         }
 
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteOrganizer(int id)
         {
-            var userId = User.FindFirstValue(System.Security.Claims.ClaimTypes.NameIdentifier);
-            var organizerEntity = await _context.Organizers.FirstOrDefaultAsync(o => o.Id == id && o.AppUserId == userId);
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+            var organizerEntity = await _context.Organizers
+                .FirstOrDefaultAsync(o => o.Id == id && o.AppUserId == userId);
 
             if (organizerEntity == null)
-                return NotFound();
+            {
+                return NotFound(new ApiResponse<string>
+                {
+                    Success = false,
+                    Message = "Organizer not found or access denied.",
+                    Data = null
+                });
+            }
 
             _context.Organizers.Remove(organizerEntity);
             await _context.SaveChangesAsync();
 
-            return NoContent();
+            return Ok(new ApiResponse<string>
+            {
+                Success = true,
+                Message = "Organizer deleted successfully.",
+                Data = null
+            });
         }
 
         [HttpGet("{organizerId}/events")]
         public async Task<IActionResult> GetEventsByOrganizer(int organizerId)
         {
-            var userId = User.FindFirstValue(System.Security.Claims.ClaimTypes.NameIdentifier);
-            var organizerExists = await _context.Organizers.AnyAsync(o => o.Id == organizerId && o.AppUserId == userId);
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+            var organizerExists = await _context.Organizers
+                .AnyAsync(o => o.Id == organizerId && o.AppUserId == userId);
 
             if (!organizerExists)
-                return NotFound("Organizer not found.");
+            {
+                return NotFound(new ApiResponse<string>
+                {
+                    Success = false,
+                    Message = "Organizer not found or access denied.",
+                    Data = null
+                });
+            }
 
             var events = await _context.Events
                 .Where(e => e.OrganizerId == organizerId)
@@ -112,20 +179,41 @@ namespace StudentGroup.Controllers
 
             var result = _mapper.Map<List<EventGetdto>>(events);
 
-            return Ok(result);
+            return Ok(new ApiResponse<List<EventGetdto>>
+            {
+                Success = true,
+                Message = "Organizer events retrieved successfully.",
+                Data = result
+            });
         }
 
         [HttpPost("{organizerId}/logo")]
         public async Task<IActionResult> UploadLogo(int organizerId, IFormFile file)
         {
-            var userId = User.FindFirstValue(System.Security.Claims.ClaimTypes.NameIdentifier);
-            var organizer = await _context.Organizers.FirstOrDefaultAsync(o => o.Id == organizerId && o.AppUserId == userId);
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+            var organizer = await _context.Organizers
+                .FirstOrDefaultAsync(o => o.Id == organizerId && o.AppUserId == userId);
 
             if (organizer == null)
-                return NotFound("Organizer not found.");
+            {
+                return NotFound(new ApiResponse<string>
+                {
+                    Success = false,
+                    Message = "Organizer not found or access denied.",
+                    Data = null
+                });
+            }
 
             if (file == null || file.Length == 0)
-                return BadRequest("No file uploaded.");
+            {
+                return BadRequest(new ApiResponse<string>
+                {
+                    Success = false,
+                    Message = "No file uploaded.",
+                    Data = null
+                });
+            }
 
             var folderPath = Path.Combine("wwwroot", "uploads", "organizers");
 
@@ -142,10 +230,14 @@ namespace StudentGroup.Controllers
 
             await _context.SaveChangesAsync();
 
-            return Ok(new
+            return Ok(new ApiResponse<object>
             {
-                message = "Logo uploaded successfully.",
-                logoUrl = organizer.LogoUrl
+                Success = true,
+                Message = "Logo uploaded successfully.",
+                Data = new
+                {
+                    logoUrl = organizer.LogoUrl
+                }
             });
         }
     }
