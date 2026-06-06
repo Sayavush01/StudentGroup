@@ -25,7 +25,19 @@ public class EventControllerTests
 
     private EventController CreateController(EventManagementDb context)
     {
-        var controller = new EventController(context, _mapperMock.Object);
+        var createValMock = new Mock<FluentValidation.IValidator<EventCreateDto>>();
+        createValMock.Setup(v => v.ValidateAsync(It.IsAny<EventCreateDto>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new FluentValidation.Results.ValidationResult());
+            
+        var updateValMock = new Mock<FluentValidation.IValidator<EventUpdatedto>>();
+        updateValMock.Setup(v => v.ValidateAsync(It.IsAny<EventUpdatedto>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new FluentValidation.Results.ValidationResult());
+            
+        var tCreateValMock = new Mock<FluentValidation.IValidator<TicketCreate>>();
+        tCreateValMock.Setup(v => v.ValidateAsync(It.IsAny<TicketCreate>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new FluentValidation.Results.ValidationResult());
+
+        var controller = new EventController(context, _mapperMock.Object, createValMock.Object, updateValMock.Object, tCreateValMock.Object);
         var user = new ClaimsPrincipal(new ClaimsIdentity(new Claim[]
         {
             new Claim(ClaimTypes.NameIdentifier, "test-user")

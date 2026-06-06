@@ -17,11 +17,15 @@ namespace StudentGroup.Controllers
     {
         private readonly EventManagementDb _context;
         private readonly IMapper _mapper;
+        private readonly FluentValidation.IValidator<TicketCreate> _createValidator;
+        private readonly FluentValidation.IValidator<TicketUpdateDto> _updateValidator;
 
-        public TicketController(EventManagementDb context, IMapper mapper)
+        public TicketController(EventManagementDb context, IMapper mapper, FluentValidation.IValidator<TicketCreate> createValidator, FluentValidation.IValidator<TicketUpdateDto> updateValidator)
         {
             _context = context;
             _mapper = mapper;
+            _createValidator = createValidator;
+            _updateValidator = updateValidator;
         }
 
         [HttpGet]
@@ -78,6 +82,10 @@ namespace StudentGroup.Controllers
         [HttpPost]
         public async Task<IActionResult> CreateTicket([FromBody] TicketCreate ticketCreateDto)
         {
+            var validationResult = await _createValidator.ValidateAsync(ticketCreateDto);
+            if (!validationResult.IsValid)
+                return BadRequest(validationResult.Errors);
+
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
 
             var eventExists = await _context.Events
@@ -115,6 +123,10 @@ namespace StudentGroup.Controllers
         [HttpPut("{id}")]
         public async Task<IActionResult> UpdateTicket(int id, [FromBody] TicketUpdateDto ticketUpdateDto)
         {
+            var validationResult = await _updateValidator.ValidateAsync(ticketUpdateDto);
+            if (!validationResult.IsValid)
+                return BadRequest(validationResult.Errors);
+
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
 
             var ticketEntity = await _context.Tickets

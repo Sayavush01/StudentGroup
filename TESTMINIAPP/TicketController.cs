@@ -23,7 +23,15 @@ public class TicketControllerTests
 
     private TicketController CreateController(EventManagementDb context)
     {
-        var controller = new TicketController(context, _mapperMock.Object);
+        var createValMock = new Mock<FluentValidation.IValidator<TicketCreate>>();
+        createValMock.Setup(v => v.ValidateAsync(It.IsAny<TicketCreate>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new FluentValidation.Results.ValidationResult());
+        
+        var updateValMock = new Mock<FluentValidation.IValidator<TicketUpdateDto>>();
+        updateValMock.Setup(v => v.ValidateAsync(It.IsAny<TicketUpdateDto>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new FluentValidation.Results.ValidationResult());
+
+        var controller = new TicketController(context, _mapperMock.Object, createValMock.Object, updateValMock.Object);
         var user = new ClaimsPrincipal(new ClaimsIdentity(new Claim[]
         {
             new Claim(ClaimTypes.NameIdentifier, "test-user")

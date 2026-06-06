@@ -18,11 +18,19 @@ namespace StudentGroup.Controllers
     {
         private readonly EventManagementDb _context;
         private readonly IMapper _mapper;
+        private readonly FluentValidation.IValidator<OrganizerCreate> _createValidator;
+        private readonly FluentValidation.IValidator<OrganizerUpdateDto> _updateValidator;
 
-        public OrganizerController(EventManagementDb context, IMapper mapper)
+        public OrganizerController(
+            EventManagementDb context, 
+            IMapper mapper, 
+            FluentValidation.IValidator<OrganizerCreate> createValidator, 
+            FluentValidation.IValidator<OrganizerUpdateDto> updateValidator)
         {
             _context = context;
             _mapper = mapper;
+            _createValidator = createValidator;
+            _updateValidator = updateValidator;
         }
 
         [HttpGet]
@@ -75,6 +83,10 @@ namespace StudentGroup.Controllers
         [HttpPost]
         public async Task<IActionResult> CreateOrganizer([FromBody] OrganizerCreate organizerCreateDto)
         {
+            var validationResult = await _createValidator.ValidateAsync(organizerCreateDto);
+            if (!validationResult.IsValid)
+                return BadRequest(validationResult.Errors);
+
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
 
             var organizerEntity = _mapper.Map<Organizer>(organizerCreateDto);
@@ -99,6 +111,10 @@ namespace StudentGroup.Controllers
         [HttpPut("{id}")]
         public async Task<IActionResult> UpdateOrganizer(int id, [FromBody] OrganizerUpdateDto organizerUpdateDto)
         {
+            var validationResult = await _updateValidator.ValidateAsync(organizerUpdateDto);
+            if (!validationResult.IsValid)
+                return BadRequest(validationResult.Errors);
+
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
 
             var organizerEntity = await _context.Organizers

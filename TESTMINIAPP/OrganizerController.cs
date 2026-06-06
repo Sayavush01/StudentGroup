@@ -24,7 +24,15 @@ public class OrganizerControllerTests
 
     private OrganizerController CreateController(EventManagementDb context)
     {
-        var controller = new OrganizerController(context, _mapperMock.Object);
+        var createValMock = new Mock<FluentValidation.IValidator<OrganizerCreate>>();
+        createValMock.Setup(v => v.ValidateAsync(It.IsAny<OrganizerCreate>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new FluentValidation.Results.ValidationResult());
+            
+        var updateValMock = new Mock<FluentValidation.IValidator<OrganizerUpdateDto>>();
+        updateValMock.Setup(v => v.ValidateAsync(It.IsAny<OrganizerUpdateDto>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new FluentValidation.Results.ValidationResult());
+
+        var controller = new OrganizerController(context, _mapperMock.Object, createValMock.Object, updateValMock.Object);
         var user = new ClaimsPrincipal(new ClaimsIdentity(new Claim[]
         {
             new Claim(ClaimTypes.NameIdentifier, "test-user")

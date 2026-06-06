@@ -19,11 +19,22 @@ namespace StudentGroup.Controllers
     {
         private readonly EventManagementDb _context;
         private readonly IMapper _mapper;
+        private readonly FluentValidation.IValidator<EventCreateDto> _createValidator;
+        private readonly FluentValidation.IValidator<EventUpdatedto> _updateValidator;
+        private readonly FluentValidation.IValidator<TicketCreate> _ticketCreateValidator;
 
-        public EventController(EventManagementDb context, IMapper mapper)
+        public EventController(
+            EventManagementDb context, 
+            IMapper mapper, 
+            FluentValidation.IValidator<EventCreateDto> createValidator, 
+            FluentValidation.IValidator<EventUpdatedto> updateValidator, 
+            FluentValidation.IValidator<TicketCreate> ticketCreateValidator)
         {
             _context = context;
             _mapper = mapper;
+            _createValidator = createValidator;
+            _updateValidator = updateValidator;
+            _ticketCreateValidator = ticketCreateValidator;
         }
 
         [HttpGet]
@@ -78,6 +89,10 @@ namespace StudentGroup.Controllers
         [HttpPost]
         public async Task<IActionResult> CreateEvent([FromBody] EventCreateDto eventCreateDto)
         {
+            var validationResult = await _createValidator.ValidateAsync(eventCreateDto);
+            if (!validationResult.IsValid)
+                return BadRequest(validationResult.Errors);
+
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
 
             var organizerExists = await _context.Organizers
@@ -114,6 +129,10 @@ namespace StudentGroup.Controllers
         [HttpPut("{id}")]
         public async Task<IActionResult> UpdateEvent(int id, [FromBody] EventUpdatedto eventUpdateDto)
         {
+            var validationResult = await _updateValidator.ValidateAsync(eventUpdateDto);
+            if (!validationResult.IsValid)
+                return BadRequest(validationResult.Errors);
+
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
 
             var eventEntity = await _context.Events
@@ -208,6 +227,10 @@ namespace StudentGroup.Controllers
         [HttpPost("{eventId}/tickets")]
         public async Task<IActionResult> CreateTicketForEvent(int eventId, [FromBody] TicketCreate dto)
         {
+            var validationResult = await _ticketCreateValidator.ValidateAsync(dto);
+            if (!validationResult.IsValid)
+                return BadRequest(validationResult.Errors);
+
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
 
             var eventExists = await _context.Events
